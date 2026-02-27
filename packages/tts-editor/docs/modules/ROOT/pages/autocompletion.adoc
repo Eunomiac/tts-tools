@@ -6,7 +6,7 @@ Since this is a dedicated extension for handling Lua, it is far superior to what
 
 == Setup
 * Install the https://marketplace.visualstudio.com/items?itemName=sumneko.lua[Lua extension] in VS Code.
-* Download the file `language-server.zip` from the latest https://github.com/Sebaestschjin/typed-tabletop-simulator/releases[release] and extract it somewhere at your local file system.
+* Download the file `language-server.zip` from the latest https://github.com/Sebaestschjin/typed-tabletop-simulator/releases?q=%22Lua+Language+Server+Types%22&expanded=true[release] and extract it somewhere at your local file system.
 ** Alternatively you could also clone linked git repository, so it's easier to get updates on those files, if you are familiar with git.
 * Open the settings in VS Code and search for `lua library`.
 Add a new item for this setting and add the path in your local file system where your extracted the file from before.
