@@ -24,7 +24,12 @@ import {
 } from "./io/bundle";
 import { getOutputFileUri, getOutputPath, OutputType, readOutputFile, writeOutputFile } from "./io/files";
 import { ImportMutex } from "./io/importMutex";
-import { reconcileObjectsFromState, SyncMode } from "./io/objectSync";
+import {
+  looksLikeLuaRequireStub,
+  looksLikeXmlIncludeStub,
+  reconcileObjectsFromState,
+  SyncMode,
+} from "./io/objectSync";
 import { closeEditorApi, isEditorApiListening, listenEditorApi, prepareAndListen } from "./io/portSession";
 import { installReturnIdDemux } from "./io/returnIdDemux";
 import {
@@ -604,16 +609,31 @@ return nil
     for (const object of this.plugin.getLoadedObjects()) {
       try {
         this.plugin.debug(`Reading object files ${object.fileName}`);
-        const luaFile = await readOutputFile(`${object.fileName}.lua`, bundled);
-        const xmlFile = await readOutputFile(`${object.fileName}.xml`, bundled);
+        const fromBundledLua = await readOutputFile(`${object.fileName}.lua`, "bundle");
+        const fromBundledXml = await readOutputFile(`${object.fileName}.xml`, "bundle");
+        const fromObjectsLua = await readOutputFile(`${object.fileName}.lua`, "script");
+        const fromObjectsXml = await readOutputFile(`${object.fileName}.xml`, "script");
 
-        let lua: string = luaFile ?? "";
-        let xml: string = xmlFile ?? "";
-        if (luaFile && bundled === "script") {
-          lua = await bundleLua(luaFile, includePathsLua);
+        let lua = "";
+        let xml = "";
+
+        // Global stubs use require / Include — always rebundle from objects when those stubs exist,
+        // even for "Save and Play (Bundled)", so HUD XML changes under ui/ still reach TTS.
+        const rebundleGlobalLua =
+          object.isGlobal && fromObjectsLua !== undefined && looksLikeLuaRequireStub(fromObjectsLua);
+        const rebundleGlobalXml =
+          object.isGlobal && fromObjectsXml !== undefined && looksLikeXmlIncludeStub(fromObjectsXml);
+
+        if (rebundleGlobalLua || (bundled === "script" && fromObjectsLua)) {
+          lua = await bundleLua(fromObjectsLua ?? "", includePathsLua);
+        } else {
+          lua = (bundled === "bundle" ? fromBundledLua : fromObjectsLua) ?? fromBundledLua ?? "";
         }
-        if (xmlFile && bundled === "script") {
-          xml = await bundleXml(xmlFile, includePathXml);
+
+        if (rebundleGlobalXml || (bundled === "script" && fromObjectsXml)) {
+          xml = await bundleXml(fromObjectsXml ?? "", includePathXml);
+        } else {
+          xml = (bundled === "bundle" ? fromBundledXml : fromObjectsXml) ?? fromBundledXml ?? "";
         }
 
         scripts.set(object.guid, {
