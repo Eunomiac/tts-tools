@@ -1,12 +1,18 @@
 import { ExtensionContext, commands, window } from "vscode";
 
+import { claimEditorPort, releaseEditorPort } from "./command/claimEditorPort";
 import createUi from "./command/createUi";
 import executeScript from "./command/executeScript";
 import getScripts from "./command/getScripts";
 import goToLastError from "./command/goToLastError";
 import openBundledScript from "./command/openBundledScript";
 import unbundleLibrary from "./command/unbundleLibrary";
-import { saveAndPlay, saveAndPlayBundled, saveAndPlayBundledFullResync, saveAndPlayFullResync } from "./command/saveAndPlay";
+import {
+  saveAndPlay,
+  saveAndPlayBundled,
+  saveAndPlayBundledFullResync,
+  saveAndPlayFullResync,
+} from "./command/saveAndPlay";
 import showOutput from "./command/showOutput";
 import showView from "./command/showView";
 import updateObject from "./command/updateObject";
@@ -18,6 +24,9 @@ import { TTSObjectItem, TTSObjectTreeProvider } from "./view/ttsObjectTreeProvid
 
 export const extensionName = "ttsEditor";
 
+let activeAdapter: TTSAdapter | undefined;
+let activePlugin: Plugin | undefined;
+
 export function activate(context: ExtensionContext) {
   const fileHandler = new FileHandler(context.extension);
   const plugin = new Plugin(fileHandler);
@@ -26,6 +35,8 @@ export function activate(context: ExtensionContext) {
     treeDataProvider: viewProvider,
   });
   const adapter: TTSAdapter = new TTSAdapter(plugin);
+  activeAdapter = adapter;
+  activePlugin = plugin;
 
   const registerCommand = (name: string, handler: Parameters<typeof commands.registerCommand>[1]) => {
     context.subscriptions.push(commands.registerCommand(`${extensionName}.${name}`, handler));
@@ -40,6 +51,8 @@ export function activate(context: ExtensionContext) {
   registerCommand("saveAndPlayBundled", saveAndPlayBundled(adapter));
   registerCommand("saveAndPlayFullResync", saveAndPlayFullResync(adapter));
   registerCommand("saveAndPlayBundledFullResync", saveAndPlayBundledFullResync(adapter));
+  registerCommand("claimEditorPort", claimEditorPort(adapter));
+  registerCommand("releaseEditorPort", releaseEditorPort(adapter));
   registerCommand("executeCode", executeScript(adapter));
   registerCommand("showOutput", showOutput(plugin));
   registerCommand("goToLastError", goToLastError(adapter));
@@ -60,6 +73,14 @@ export function activate(context: ExtensionContext) {
   console.log("tts-tools-vscode activated");
 }
 
-export function deactivate() {
-  console.log(`${extensionName} deactivated`);
+export async function deactivate() {
+  console.log(`${extensionName} deactivating — releasing editor port`);
+  try {
+    await activeAdapter?.dispose();
+  } catch (e) {
+    console.error(e);
+  }
+  activePlugin?.dispose();
+  activeAdapter = undefined;
+  activePlugin = undefined;
 }

@@ -25,6 +25,7 @@ import {
 import { getOutputFileUri, getOutputPath, OutputType, readOutputFile, writeOutputFile } from "./io/files";
 import { ImportMutex } from "./io/importMutex";
 import { reconcileObjectsFromState, SyncMode } from "./io/objectSync";
+import { closeEditorApi, isEditorApiListening, listenEditorApi, prepareAndListen } from "./io/portSession";
 import { installReturnIdDemux } from "./io/returnIdDemux";
 import {
   EditorMessage,
@@ -52,9 +53,65 @@ export class TTSAdapter {
     this.api = new ExternalEditorApi();
     this.plugin = plugin;
 
-    installReturnIdDemux(this.api);
-    this.initExternalEditorApi();
+    this.bindApi(this.api);
+    void this.startListeningOnActivate();
   }
+
+  /**
+   * Start (or resume) listening on editor port 39998. Force-claims reclaimable holders on Windows.
+   */
+  public claimEditorPort = async (): Promise<void> => {
+    try {
+      const { detail } = await this.plugin.progress("Claiming TTS editor port", async () => {
+        if (isEditorApiListening(this.api)) {
+          return { port: 39998, detail: "Already holding the editor port." };
+        }
+        // Fresh API after close so upstream connection handlers attach on listen again
+        await closeEditorApi(this.api);
+        this.api = new ExternalEditorApi();
+        this.bindApi(this.api);
+        return prepareAndListen(this.api);
+      });
+      this.plugin.setPortStatus("holding", detail);
+      this.plugin.info(detail);
+      window.showInformationMessage(detail);
+    } catch (e) {
+      const message = `${e}`;
+      this.plugin.setPortStatus("error", message);
+      this.plugin.error(message);
+      window.showErrorMessage(message);
+    }
+  };
+
+  /**
+   * Stop listening on 39998 so another app (e.g. Storyteller Dashboard) can bind it.
+   */
+  public releaseEditorPort = async (): Promise<void> => {
+    try {
+      await closeEditorApi(this.api);
+      const detail = "Released port 39998. Dashboard or another tool can Claim it now.";
+      this.plugin.setPortStatus("released", detail);
+      this.plugin.info(detail);
+      window.showInformationMessage(detail);
+    } catch (e) {
+      const message = `Could not release editor port: ${e}`;
+      this.plugin.setPortStatus("error", message);
+      this.plugin.error(message);
+      window.showErrorMessage(message);
+    }
+  };
+
+  public isHoldingEditorPort = (): boolean => isEditorApiListening(this.api);
+
+  /** Close the editor listener; called from extension deactivate. */
+  public dispose = async (): Promise<void> => {
+    try {
+      await closeEditorApi(this.api);
+    } catch (e) {
+      this.plugin.error(`dispose: ${e}`);
+    }
+    this.plugin.setPortStatus("released", "Extension deactivated.");
+  };
 
   /**
    * Retrieves scripts from currently open game.
@@ -243,14 +300,28 @@ spawnObjectJSON({
     }
   };
 
-  private initExternalEditorApi = () => {
-    this.api.on("loadingANewGame", this.onLoadGame.bind(this));
-    this.api.on("pushingNewObject", this.onPushObject.bind(this));
-    this.api.on("objectCreated", this.onObjectCreated.bind(this));
-    this.api.on("printDebugMessage", this.onPrintDebugMessage.bind(this));
-    this.api.on("errorMessage", this.onErrorMessage.bind(this));
-    this.api.on("customMessage", this.onCustomMessage.bind(this));
-    this.api.listen();
+  private bindApi = (api: ExternalEditorApi) => {
+    installReturnIdDemux(api);
+    api.on("loadingANewGame", this.onLoadGame.bind(this));
+    api.on("pushingNewObject", this.onPushObject.bind(this));
+    api.on("objectCreated", this.onObjectCreated.bind(this));
+    api.on("printDebugMessage", this.onPrintDebugMessage.bind(this));
+    api.on("errorMessage", this.onErrorMessage.bind(this));
+    api.on("customMessage", this.onCustomMessage.bind(this));
+  };
+
+  private startListeningOnActivate = async () => {
+    try {
+      await listenEditorApi(this.api);
+      this.plugin.setPortStatus("holding", "Listening on editor port 39998.");
+      this.plugin.info("Listening on TTS editor port 39998.");
+    } catch (e) {
+      const message =
+        `Could not listen on 39998 (${e}). Another tool may hold the port — ` +
+        `use “Claim TTS Editor Port” after they Release, or Claim to force-take reclaimable holders.`;
+      this.plugin.setPortStatus("error", message);
+      this.plugin.error(message);
+    }
   };
 
   private onLoadGame = async (message: LoadingANewGame) => {

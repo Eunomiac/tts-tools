@@ -1,25 +1,27 @@
-import { OutputChannel, ProgressLocation, StatusBarAlignment, StatusBarItem, window } from "vscode";
+import { OutputChannel, ProgressLocation, StatusBarAlignment, StatusBarItem, ThemeColor, window } from "vscode";
 
 import { LoadedObject, SetLoadedObject } from "./model/objectData";
 import { FileHandler, hasOutputFile, writeOutputFile } from "./io/files";
+import { PortHoldState } from "./io/portSession";
 import { command } from "./command";
 
 export class Plugin {
   public readonly fileHandler: FileHandler;
   private output: OutputChannel;
   private status: StatusBarItem;
+  private portStatus: StatusBarItem;
   private loadedObjects: Map<string, LoadedObject> = new Map();
 
-  /**
-   * @param output Output channel where logs will be written to
-   */
   public constructor(fileHandler: FileHandler) {
     this.fileHandler = fileHandler;
     this.output = window.createOutputChannel("TTS Editor");
     this.status = window.createStatusBarItem("tts.status", StatusBarAlignment.Left, -1);
     this.status.command = "ttsEditor.showOutput";
+    this.portStatus = window.createStatusBarItem("tts.portStatus", StatusBarAlignment.Left, -2);
+    this.portStatus.command = "ttsEditor.claimEditorPort";
 
     this.setBaseStatus();
+    this.setPortStatus("released");
   }
 
   resetLoadedObjects = () => {
@@ -99,6 +101,34 @@ export class Plugin {
     setTimeout(() => this.setBaseStatus(), 5000);
   };
 
+  setPortStatus = (state: PortHoldState, detail?: string) => {
+    switch (state) {
+      case "holding":
+        this.portStatus.text = "$(plug) TTS Port: 39998";
+        this.portStatus.tooltip = detail
+          ? `${detail}\nClick to Release the editor port.`
+          : "Holding editor port 39998. Click to Release for the Dashboard.";
+        this.portStatus.backgroundColor = undefined;
+        this.portStatus.command = "ttsEditor.releaseEditorPort";
+        break;
+      case "released":
+        this.portStatus.text = "$(debug-disconnect) TTS Port: released";
+        this.portStatus.tooltip = detail
+          ? `${detail}\nClick to Claim the editor port.`
+          : "Not listening on 39998. Click to Claim.";
+        this.portStatus.backgroundColor = undefined;
+        this.portStatus.command = "ttsEditor.claimEditorPort";
+        break;
+      case "error":
+        this.portStatus.text = "$(error) TTS Port: error";
+        this.portStatus.tooltip = detail ?? "Editor port error. Click to retry Claim.";
+        this.portStatus.backgroundColor = new ThemeColor("statusBarItem.errorBackground");
+        this.portStatus.command = "ttsEditor.claimEditorPort";
+        break;
+    }
+    this.portStatus.show();
+  };
+
   showOutput = () => {
     this.output.show();
   };
@@ -125,6 +155,12 @@ export class Plugin {
       },
       handler
     );
+  };
+
+  dispose = () => {
+    this.status.dispose();
+    this.portStatus.dispose();
+    this.output.dispose();
   };
 
   private setBaseStatus = (postfix?: string) => {

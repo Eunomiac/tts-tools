@@ -6,7 +6,7 @@
   },
   "publisher": "eunomiac",
   "description": "Community fork of Sebastian Stern’s TTS Editor — External Editor API for Tabletop Simulator (scripts, XmlUI bundling, objects). Not affiliated with Berserk Games.",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "engines": {
     "vscode": "^1.96.0"
   },
@@ -60,6 +60,18 @@
         "title": "Save and Play Bundled (Full Resync)",
         "category": "TTS Editor",
         "icon": "$(sync)"
+      },
+      {
+        "command": "ttsEditor.claimEditorPort",
+        "title": "Claim TTS Editor Port",
+        "category": "TTS Editor",
+        "icon": "$(plug)"
+      },
+      {
+        "command": "ttsEditor.releaseEditorPort",
+        "title": "Release TTS Editor Port",
+        "category": "TTS Editor",
+        "icon": "$(debug-disconnect)"
       },
       {
         "command": "ttsEditor.executeCode",
@@ -193,6 +205,14 @@
         },
         {
           "command": "ttsEditor.saveAndPlayFullResync",
+          "when": "view == ttsEditor.objectView"
+        },
+        {
+          "command": "ttsEditor.claimEditorPort",
+          "when": "view == ttsEditor.objectView"
+        },
+        {
+          "command": "ttsEditor.releaseEditorPort",
           "when": "view == ttsEditor.objectView"
         },
         {
