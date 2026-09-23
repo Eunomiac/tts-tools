@@ -6,7 +6,7 @@
   },
   "publisher": "eunomiac",
   "description": "Community fork of Sebastian Stern’s TTS Editor — External Editor API for Tabletop Simulator (scripts, XmlUI bundling, objects). Not affiliated with Berserk Games.",
-  "version": "2.1.3",
+  "version": "2.2.0",
   "engines": {
     "vscode": "^1.96.0"
   },
@@ -48,6 +48,18 @@
         "title": "Save and Play (Bundled)",
         "category": "TTS Editor",
         "icon": "$(send)"
+      },
+      {
+        "command": "ttsEditor.saveAndPlayFullResync",
+        "title": "Save and Play (Full Resync)",
+        "category": "TTS Editor",
+        "icon": "$(sync)"
+      },
+      {
+        "command": "ttsEditor.saveAndPlayBundledFullResync",
+        "title": "Save and Play Bundled (Full Resync)",
+        "category": "TTS Editor",
+        "icon": "$(sync)"
       },
       {
         "command": "ttsEditor.executeCode",
@@ -141,6 +153,12 @@
           "markdownDescription": "When set, custom messages sent from TTS are handled. Otherwise, they are ignored.",
           "type": "boolean",
           "default": true
+        },
+        "ttsEditor.resyncAfterSaveAndPlay": {
+          "title": "Full resync after Save and Play",
+          "markdownDescription": "When enabled, every Save and Play rebuilds object data with `getJSON` (slow on large saves). When disabled (default), Save and Play only refreshes scripts/UI from the TTS echo — use **Save and Play (Full Resync)** when you need fresh `data.json`.",
+          "type": "boolean",
+          "default": false
         }
       }
     },
@@ -171,6 +189,10 @@
         },
         {
           "command": "ttsEditor.saveAndPlayBundled",
+          "when": "view == ttsEditor.objectView"
+        },
+        {
+          "command": "ttsEditor.saveAndPlayFullResync",
           "when": "view == ttsEditor.objectView"
         },
         {

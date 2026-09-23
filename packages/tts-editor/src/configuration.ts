@@ -6,6 +6,7 @@ const configName = {
   name: "ttsEditor",
   includePath: "includePath",
   useMessages: "enableMessages",
+  resyncAfterSaveAndPlay: "resyncAfterSaveAndPlay",
 };
 
 const includePatterns = () => {
@@ -39,6 +40,8 @@ const xmlIncludePaths = (): string[] => {
 
 const messagesEnabled = (): boolean => getConfig(configName.useMessages);
 
+const resyncAfterSaveAndPlay = (): boolean => getConfig(configName.resyncAfterSaveAndPlay) === true;
+
 const getConfig = <T>(name: string) => {
   const config = workspace.getConfiguration(configName.name);
   return config.get(name) as T;
@@ -48,4 +51,5 @@ export default {
   luaIncludePaths,
   xmlIncludePaths,
   messagesEnabled,
+  resyncAfterSaveAndPlay,
 };

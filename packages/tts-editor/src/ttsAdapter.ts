@@ -1,14 +1,13 @@
 import ExternalEditorApi, {
   CustomMessage,
   ErrorMessage,
-  IncomingJsonObject,
   LoadingANewGame,
   ObjectCreated,
   OutgoingJsonObject,
   PrintDebugMessage,
   PushingNewObject,
 } from "@matanlurey/tts-editor";
-import { TTSObject as SaveFileObject, bundleObject, unbundleObject } from "@tts-tools/savefile";
+import { TTSObject as SaveFileObject, bundleObject } from "@tts-tools/savefile";
 import { Range, Uri, window, workspace } from "vscode";
 
 import { command } from "./command";
@@ -21,10 +20,12 @@ import {
   getRootName,
   isBundled,
   unbundleLua,
-  unbundleRootModule,
   unbundleXml,
 } from "./io/bundle";
 import { getOutputFileUri, getOutputPath, OutputType, readOutputFile, writeOutputFile } from "./io/files";
+import { ImportMutex } from "./io/importMutex";
+import { reconcileObjectsFromState, SyncMode } from "./io/objectSync";
+import { installReturnIdDemux } from "./io/returnIdDemux";
 import {
   EditorMessage,
   MessageFormat,
@@ -41,11 +42,17 @@ export class TTSAdapter {
   private api: ExternalEditorApi;
   private plugin: Plugin;
   private lastError: Maybe<ErrorMessage> = undefined;
+  private importMutex = new ImportMutex();
+  /** Set before Save & Play so the following loadingANewGame uses the fast echo path. */
+  private expectSaveAndPlayEcho = false;
+  private forceFullResyncOnEcho = false;
+  private pendingSentScripts: OutgoingJsonObject[] | undefined;
 
   public constructor(plugin: Plugin) {
     this.api = new ExternalEditorApi();
     this.plugin = plugin;
 
+    installReturnIdDemux(this.api);
     this.initExternalEditorApi();
   }
 
@@ -57,9 +64,15 @@ export class TTSAdapter {
   };
 
   /**
-   * Sends the bundled scripts to TTS
+   * Sends the bundled scripts to TTS.
+   *
+   * By default the Save & Play echo uses a fast sync (no wipe, no N× getJSON).
+   * Pass `fullResync: true` or enable `ttsEditor.resyncAfterSaveAndPlay` for a full getJSON rebuild.
    */
-  public saveAndPlay = async (bundled: OutputType = "script") => {
+  public saveAndPlay = async (
+    bundled: OutputType = "script",
+    options: { fullResync?: boolean } = {}
+  ) => {
     try {
       await saveAllFiles();
 
@@ -68,6 +81,9 @@ export class TTSAdapter {
       );
 
       if (errors.size === 0) {
+        this.expectSaveAndPlayEcho = true;
+        this.forceFullResyncOnEcho = options.fullResync === true || configuration.resyncAfterSaveAndPlay();
+        this.pendingSentScripts = scripts;
         this.plugin.progress("Sending scripts to TTS", async () => this.api.saveAndPlay(scripts));
       } else {
         [...errors].forEach((message) => window.showErrorMessage(message));
@@ -75,6 +91,11 @@ export class TTSAdapter {
     } catch (e) {
       this.plugin.error(`${e}`);
     }
+  };
+
+  /** Save & Play then force a full getJSON resync on the reload echo. */
+  public saveAndPlayFullResync = async (bundled: OutputType = "script") => {
+    return this.saveAndPlay(bundled, { fullResync: true });
   };
 
   /**
@@ -235,14 +256,61 @@ spawnObjectJSON({
   private onLoadGame = async (message: LoadingANewGame) => {
     this.plugin.debug("recieved onLoadGame");
     this.lastError = undefined;
-    await this.clearOutputPath();
-    this.plugin.resetLoadedObjects();
-    this.plugin.progress("Reading objects", async () => this.readFilesFromTTS(message.scriptStates));
+
+    const isEcho = this.expectSaveAndPlayEcho;
+    const forceFull = this.forceFullResyncOnEcho;
+    const sentScripts = this.pendingSentScripts;
+    this.expectSaveAndPlayEcho = false;
+    this.forceFullResyncOnEcho = false;
+    this.pendingSentScripts = undefined;
+
+    let mode: SyncMode;
+    if (isEcho && forceFull) {
+      mode = "full";
+    } else if (isEcho) {
+      mode = "echo";
+    } else {
+      mode = "incremental";
+    }
+
+    const title = mode === "echo" ? "Updating scripts" : mode === "full" ? "Reading objects (full)" : "Syncing objects";
+    await this.importMutex.runExclusive(async () => {
+      await this.plugin.progress(title, async () =>
+        reconcileObjectsFromState(
+          {
+            plugin: this.plugin,
+            getObjectData: this.getObjectData,
+            debug: this.plugin.debug,
+          },
+          {
+            mode,
+            scriptStates: message.scriptStates,
+            sentScripts,
+            openFiles: false,
+          }
+        )
+      );
+    });
   };
 
   private onPushObject = async (message: PushingNewObject) => {
     this.plugin.debug(`recieved onPushObject ${message.messageID}`);
-    this.readFilesFromTTS(message.scriptStates, true);
+    await this.importMutex.runExclusive(async () => {
+      await this.plugin.progress("Reading object", async () =>
+        reconcileObjectsFromState(
+          {
+            plugin: this.plugin,
+            getObjectData: this.getObjectData,
+            debug: this.plugin.debug,
+          },
+          {
+            mode: "incremental",
+            scriptStates: message.scriptStates,
+            openFiles: true,
+          }
+        )
+      );
+    });
   };
 
   private onObjectCreated = async (message: ObjectCreated) => {
@@ -412,12 +480,6 @@ spawnObjectJSON({
     }
   };
 
-  private clearOutputPath = async () => {
-    await workspace.fs.delete(getOutputPath("bundle"), { recursive: true });
-    await workspace.fs.delete(getOutputPath("output"), { recursive: true });
-    await workspace.fs.delete(getOutputPath("script"), { recursive: true });
-  };
-
   private clearLibraryPath = async () => {
     await workspace.fs.delete(getOutputPath("library"), { recursive: true });
   };
@@ -441,67 +503,20 @@ return nil
     return JSON.parse(data) as SaveFileObject;
   };
 
-  private readFilesFromTTS = async (incomingObjects: IncomingJsonObject[], openFiles: boolean = false) => {
-    this.plugin.setStatus(`Recieved ${incomingObjects.length} scripts`);
-
-    for (const object of incomingObjects) {
-      if (object.guid === "-1") {
-        const fileName = "Global";
-        if (object.script !== undefined) {
-          writeOutputFile(`${fileName}.lua`, getUnbundledLua(object.script));
-          writeOutputFile(`${fileName}.lua`, object.script, "bundle");
-        }
-        if (object.ui !== undefined) {
-          writeOutputFile(`${fileName}.xml`, unbundleXml(object.ui).root);
-          writeOutputFile(`${fileName}.xml`, object.ui, "bundle");
-        }
-
-        this.plugin.setLoadedObject({
-          name: "Global",
-          fileName: fileName,
-          isGlobal: true,
-          data: {
-            LuaScript: object.script,
-            XmlUI: object.ui,
-          },
-        });
-      } else {
-        await this.readObject(object.guid, openFiles);
-      }
-    }
-  };
-
   private readObject = async (guid: string, openFiles: boolean = false) => {
-    const bundledData = await this.getObjectData(guid);
-    if (!bundledData) {
-      // The object doesn't exist anymore
-      return;
-    }
-
-    const unbundledData = unbundleObject(bundledData);
-    const objectName = bundledData.Nickname?.length > 0 ? bundledData.Nickname : bundledData.Name;
-    const baseName = objectName.replace(/([":<>/\\|?*\r\n])/g, "");
-    const fileName = `${baseName}.${guid}`;
-
-    writeOutputFile(`${fileName}.data.json`, JSON.stringify(unbundledData, null, 2));
-    if (unbundledData.LuaScript !== undefined) {
-      const scriptFile = await writeOutputFile(`${fileName}.lua`, unbundledData.LuaScript);
-      if (openFiles) {
-        window.showTextDocument(scriptFile);
-      }
-      writeOutputFile(`${fileName}.lua`, bundledData.LuaScript!, "bundle");
-    }
-    if (unbundledData.XmlUI !== undefined) {
-      writeOutputFile(`${fileName}.xml`, unbundledData.XmlUI);
-      writeOutputFile(`${fileName}.xml`, bundledData.XmlUI!, "bundle");
-    }
-
-    this.plugin.setLoadedObject({
-      isGlobal: false,
-      name: objectName,
-      guid: guid,
-      fileName: fileName,
-      data: unbundledData as unknown as ObjectData,
+    await this.importMutex.runExclusive(async () => {
+      await reconcileObjectsFromState(
+        {
+          plugin: this.plugin,
+          getObjectData: this.getObjectData,
+          debug: this.plugin.debug,
+        },
+        {
+          mode: "full",
+          scriptStates: [{ guid, name: guid, script: "" }],
+          openFiles,
+        }
+      );
     });
   };
 
@@ -549,15 +564,6 @@ return nil
     };
   };
 }
-
-const getUnbundledLua = (script: string) => {
-  try {
-    return unbundleRootModule(script);
-  } catch (e) {
-    console.error(e);
-    return script;
-  }
-};
 
 const saveAllFiles = async () => {
   try {

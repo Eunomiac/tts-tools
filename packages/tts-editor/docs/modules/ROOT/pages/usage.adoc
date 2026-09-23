@@ -24,6 +24,11 @@ Using "Save and Play" will send all script files that are currently in your outp
 When a file was deleted in the output directory, the script will be removed from the object.
 When a file was added (e.g. adding an XML UI file), it will also be added to the object in TTS.
 
+After Save and Play, the extension refreshes `.tts` scripts/UI from the TTS reload message.
+It does **not** wipe the output folder or re-download every object with `getJSON` (that used to take minutes on large saves).
+Use **Save and Play (Full Resync)** (or enable setting `ttsEditor.resyncAfterSaveAndPlay`) when you need fresh object `data.json` files.
+**Get Objects** likewise syncs scripts from `scriptStates` and only calls `getJSON` for objects that are still missing a data file.
+
 [IMPORTANT]
 ====
 "Save and Play" will load the save you loaded in TTS before applying scripts.

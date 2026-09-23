@@ -6,7 +6,7 @@ import getScripts from "./command/getScripts";
 import goToLastError from "./command/goToLastError";
 import openBundledScript from "./command/openBundledScript";
 import unbundleLibrary from "./command/unbundleLibrary";
-import { saveAndPlay, saveAndPlayBundled } from "./command/saveAndPlay";
+import { saveAndPlay, saveAndPlayBundled, saveAndPlayBundledFullResync, saveAndPlayFullResync } from "./command/saveAndPlay";
 import showOutput from "./command/showOutput";
 import showView from "./command/showView";
 import updateObject from "./command/updateObject";
@@ -38,6 +38,8 @@ export function activate(context: ExtensionContext) {
   registerCommand("getObjects", getScripts(adapter));
   registerCommand("saveAndPlay", saveAndPlay(adapter));
   registerCommand("saveAndPlayBundled", saveAndPlayBundled(adapter));
+  registerCommand("saveAndPlayFullResync", saveAndPlayFullResync(adapter));
+  registerCommand("saveAndPlayBundledFullResync", saveAndPlayBundledFullResync(adapter));
   registerCommand("executeCode", executeScript(adapter));
   registerCommand("showOutput", showOutput(plugin));
   registerCommand("goToLastError", goToLastError(adapter));
