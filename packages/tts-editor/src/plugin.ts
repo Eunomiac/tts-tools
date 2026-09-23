@@ -8,19 +8,15 @@ import { command } from "./command";
 export class Plugin {
   public readonly fileHandler: FileHandler;
   private output: OutputChannel;
-  private status: StatusBarItem;
   private portStatus: StatusBarItem;
   private loadedObjects: Map<string, LoadedObject> = new Map();
 
   public constructor(fileHandler: FileHandler) {
     this.fileHandler = fileHandler;
     this.output = window.createOutputChannel("TTS Editor");
-    this.status = window.createStatusBarItem("tts.status", StatusBarAlignment.Left, -1);
-    this.status.command = "ttsEditor.showOutput";
-    this.portStatus = window.createStatusBarItem("tts.portStatus", StatusBarAlignment.Left, -2);
+    this.portStatus = window.createStatusBarItem("tts.portStatus", StatusBarAlignment.Left, -1);
     this.portStatus.command = "ttsEditor.claimEditorPort";
 
-    this.setBaseStatus();
     this.setPortStatus("released");
   }
 
@@ -96,9 +92,9 @@ export class Plugin {
     return objects;
   };
 
+  /** Brief sync notes go to the TTS Editor output channel (no extra status-bar chip). */
   setStatus = (result: string) => {
-    this.setBaseStatus(result);
-    setTimeout(() => this.setBaseStatus(), 5000);
+    this.info(result);
   };
 
   setPortStatus = (state: PortHoldState, detail?: string) => {
@@ -158,18 +154,7 @@ export class Plugin {
   };
 
   dispose = () => {
-    this.status.dispose();
     this.portStatus.dispose();
     this.output.dispose();
-  };
-
-  private setBaseStatus = (postfix?: string) => {
-    let text = "TTS";
-    if (postfix) {
-      text += ` - ${postfix}`;
-    }
-
-    this.status.text = text;
-    this.status.show();
   };
 }
