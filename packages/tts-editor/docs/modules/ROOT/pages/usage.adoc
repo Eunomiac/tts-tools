@@ -36,7 +36,7 @@ Otherwise, you will lose the changes.
 While using "Save and Play" scripts on objects that use `require` and XML UI that uses `<Include/ >` will be updated by reading the latest version of those scripts from the file system.
 Checkout the xref:bundling.adoc[bundling documentation] for details about that process.
 
-Using the right-click context menu menu:Scripting[Scripting Edtior] on an object in TTS, will create a Lua script in the output directory of the extension and open the newly created file.
+Using the right-click context menu menu:Scripting[Scripting Editor] on an object in TTS, will create a Lua script in the output directory of the extension and open the newly created file.
 
 You can execute Lua scripts that you have opened in VS Code via the "Execute Code" command.
 Checkout the xref:execute.adoc[documentation] for details.

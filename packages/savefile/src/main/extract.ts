@@ -1,6 +1,8 @@
 import Big from "big.js";
 import { mkdirSync, readFileSync } from "fs";
-import stringify, { Element } from "json-stable-stringify";
+import stringify from "json-stable-stringify";
+
+type StringifyElement = { key: string; value: unknown };
 
 import { writeFile, writeJson } from "./io";
 import { ChildObjectsFile, ContentsFile, StatesFile } from "./model/tool";
@@ -175,15 +177,16 @@ const extractChildren = (object: TTSObject, path: string, options: Options) => {
 };
 
 const extractData = (object: TTSObject | SaveFile, path: string, options: Options) => {
-  const replacer = (key: string, value: any) => dataReplacer(key, value, options);
+  const replacer = (_key: string | number, value: unknown) => dataReplacer(String(_key), value, options);
 
-  let dataContent;
+  let dataContent: string;
   if (options.keyOrder) {
-    dataContent = stringify(object, {
-      replacer: replacer,
-      space: 2,
-      cmp: (a, b) => keyOrderer(a, b, options.keyOrder!),
-    });
+    dataContent =
+      stringify(object, {
+        replacer: replacer,
+        space: 2,
+        cmp: (a, b) => keyOrderer(a, b, options.keyOrder!),
+      }) ?? "";
   } else {
     dataContent = JSON.stringify(object, replacer, 2);
   }
@@ -193,7 +196,7 @@ const extractData = (object: TTSObject | SaveFile, path: string, options: Option
   writeFile(`${path}/Data.json`, dataContent);
 };
 
-const dataReplacer = (key: string, value: any, options: Options) => {
+const dataReplacer = (key: string, value: unknown, options: Options) => {
   if (HANDLED_KEYS.includes(key) || key === options.metadataField) {
     return undefined;
   }
@@ -208,7 +211,7 @@ const dataReplacer = (key: string, value: any, options: Options) => {
   return value;
 };
 
-const keyOrderer = (a: Element, b: Element, keyOrder: string[]) => {
+const keyOrderer = (a: StringifyElement, b: StringifyElement, keyOrder: string[]) => {
   const aOrder = keyOrder.indexOf(a.key);
   const bOrder = keyOrder.indexOf(b.key);
   if (aOrder > -1) {

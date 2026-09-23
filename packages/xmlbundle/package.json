@@ -8,21 +8,21 @@
     "tabletop-simulator",
     "tabletopsimulator"
   ],
-  "homepage": "https://github.com/Sebaestschjin/tts-tools/tree/main/packages/xmlbundle",
-  "repository": "https://github.com/Sebaestschjin/tts-tools",
-  "bugs": "https://github.com/Sebaestschjin/tts-tools/issues",
+  "homepage": "https://github.com/Eunomiac/tts-tools/tree/main/packages/xmlbundle",
+  "repository": "https://github.com/Eunomiac/tts-tools",
+  "bugs": "https://github.com/Eunomiac/tts-tools/issues",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "rimraf dist && tsc -p tsconfig.build.json",
     "test": "vitest",
-    "release": "pnpm test && pnpm build && pnpm publish --access public"
+    "release": "npm test && npm run build && npm publish --access public"
   },
   "devDependencies": {
-    "@types/node": "catalog:",
-    "rimraf": "catalog:",
-    "typescript": "catalog:",
-    "vitest": "catalog:"
+    "@types/node": "~20.17.19",
+    "rimraf": "~6.0.1",
+    "typescript": "5.7.3",
+    "vitest": "~3.0.6"
   },
   "files": [
     "/dist",

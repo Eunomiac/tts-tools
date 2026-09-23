@@ -1,0 +1,37 @@
+# NOTICE — Attribution
+
+This Visual Studio Code / Cursor extension is a **maintained fork**, not the original Marketplace listing.
+
+## Upstream project
+
+- **Original extension author:** Sebastian Stern
+- **Upstream repository:** https://github.com/Sebaestschjin/tts-tools
+- **Upstream package:** `packages/tts-editor` (historically published as publisher `sebaestschjin`, extension `tts-editor`)
+- **Upstream documentation:** https://sebaestschjin.github.io/tts-tools/editor/latest
+
+This fork is published (or prepared for publication) under publisher id **`eunomiac`**, extension name **`tts-tools`** (`eunomiac.tts-tools`).
+
+## License
+
+- Extension code: **MIT** — see `LICENSE` (copyright Sebastian Stern; fork modifications copyright Eunomiac).
+- Bundled local libraries `@tts-tools/savefile` and `@tts-tools/xmlbundle`: **CC0-1.0** (waived by upstream; see those packages’ READMEs / licenses).
+
+## Notable dependencies (non-exhaustive)
+
+Runtime dependencies declared in `package.json` (review their licenses before redistribution):
+
+| Package | Role |
+| --- | --- |
+| `@matanlurey/tts-editor` (via `github:sebaestschjin/tts-editor#dist`) | External Editor API TCP client |
+| `luabundle` | Lua `require` bundling |
+| `@tts-tools/savefile` / `@tts-tools/xmlbundle` (local, CC0) | Save extract / XmlUI includes |
+
+Transitive packages are listed in `package-lock.json`. Run `npx license-checker --production` (or similar) before a public Marketplace release and keep this NOTICE truthful.
+
+## Icons
+
+Icon attributions (Flaticon authors) are listed in `README.md` under **Attributions**.
+
+## Relationship to Tabletop Simulator
+
+“Tabletop Simulator” is a product of Berserk Games. This extension is an unofficial community tool that implements the documented External Editor API. It is **not** affiliated with or endorsed by Berserk Games.

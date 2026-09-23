@@ -1,10 +1,33 @@
-# VS Code
-.vscode/
-*.code-workspace
+# Dependencies
+node_modules/
+yarn.lock
+pnpm-lock.yaml
 
-# node
-node_modules
+# Local secrets
+.env
 
-# IntelliJ
-*.iml
-.idea
+# IDE — track shared VS Code / Cursor tasks + settings; keep other settings local
+# .vscode/*
+!.vscode/tasks.json
+!.vscode/settings.json
+# .idea/
+# *.swp
+# *.swo
+# *~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+logs/
+
+# Build outputs
+dist/
+build/
+out/
+
+# VS Code / Cursor extension packages
+*.vsix

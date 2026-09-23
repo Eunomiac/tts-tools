@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Rebranded as a community fork for publisher `eunomiac` (`eunomiac.tts-tools`): clearer Marketplace-oriented naming, README fork notice, `LICENSE` / `NOTICE` attribution to Sebastian Stern / upstream Sebaestschjin/tts-tools.
+
 ## [2.1.3] - 2025-05-13
 
 ### Fixed

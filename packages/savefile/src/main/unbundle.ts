@@ -59,5 +59,5 @@ const unbundleLuaScript = (object: TTSObject) => {
  * @returns The unbundled script.
  */
 const xmlUnbundle = (xmlUi: string): string => {
-  return unbundleXml(xmlUi);
+  return unbundleXml(xmlUi).root;
 };

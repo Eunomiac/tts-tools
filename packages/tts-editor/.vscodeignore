@@ -6,5 +6,5 @@ src/**
 **/.eslintrc.json
 **/*.map
 **/*.ts
-
 docs/**
+eslint.config.mjs
