@@ -71,7 +71,7 @@ export const closeEditorApi = async (api: ExternalEditorApi): Promise<void> => {
 export type ClaimListenResult = { port: number; detail: string };
 
 /**
- * Force-claim reclaimable holders (Dashboard, stale editors), then listen. Never kills TTS.
+ * Force-claim reclaimable holders (other local tools, stale editors), then listen. Never kills TTS.
  * Caller should pass a fresh ExternalEditorApi if the previous one was closed (connection handlers).
  */
 export const prepareAndListen = async (api: ExternalEditorApi): Promise<ClaimListenResult> => {

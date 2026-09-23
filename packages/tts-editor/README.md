@@ -16,7 +16,11 @@ Extension support for the [Tabletop Simulator External Editor API](https://api.t
 - Update an individual object without reloading the whole game (including bundling its scripts and scripts of nested objects for containers)
 - Locate an object on the table
 
-Fork-specific work in progress (Toronto Rising / local development) includes faster Save & Play sync behavior and a multi-client **TTS editor gateway** — see the fork repository README and `.dev` design notes when those ship.
+Fork additions (also listed in the changelog):
+
+- Faster Save & Play sync (incremental disk refresh; optional Full Resync)
+- Claim / Release of the TTS External Editor port so other local tools can share it
+- Planned: a local multi-client TTS editor gateway (not shipped yet)
 
 ## Preview
 

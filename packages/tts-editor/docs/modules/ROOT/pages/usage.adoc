@@ -30,7 +30,7 @@ Use **Save and Play (Full Resync)** (or enable setting `ttsEditor.resyncAfterSav
 **Get Objects** likewise syncs scripts from `scriptStates` and only calls `getJSON` for objects that are still missing a data file.
 
 Only one process can listen on TTS editor port **39998**.
-Use **Release TTS Editor Port** (status bar or Command Palette) to free the port for the Storyteller Dashboard without restarting Cursor.
+Use **Release TTS Editor Port** (status bar or Command Palette) to free the port for another local app without restarting Cursor.
 Use **Claim TTS Editor Port** to take it back (on Windows this force-stops other reclaimable listeners; it never kills Tabletop Simulator).
 
 [IMPORTANT]
