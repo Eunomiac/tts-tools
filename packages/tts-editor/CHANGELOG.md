@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Fast Save and Play (default):** after Save and Play, scripts/UI are refreshed from the TTS echo (`scriptStates`) without wiping `.tts` or running `getJSON` for every object.
+- **Save and Play (Full Resync)** command (and bundled variant) plus setting `ttsEditor.resyncAfterSaveAndPlay` for the old thorough `getJSON` rebuild.
+- Incremental **Get Objects** / load sync: apply `scriptStates` for Lua/XML; fetch `getJSON` only when `data.json` is missing; prune vanished GUIDs.
+- `returnID` matching for Lua returns (fixes scramble risk when imports overlap) and a single-flight import mutex.
+
 ### Changed
 
 - Rebranded as a community fork for publisher `eunomiac` (`eunomiac.tts-tools`): clearer Marketplace-oriented naming, README fork notice, `LICENSE` / `NOTICE` attribution to Sebastian Stern / upstream Sebaestschjin/tts-tools.
