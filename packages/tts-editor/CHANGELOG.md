@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Bundled Save & Play + Global Include stubs:** when `.tts/objects/Global.xml` (or `.lua`) is a thin `<Include>` / `require` stub, Bundled Save & Play rebundles Global from that stub so HUD changes still reach TTS. Echo writes what was sent into `.tts/bundled` without replacing the objects stubs.
+
 ### Added
 
 - **Claim / Release TTS Editor Port** commands and status-bar indicator (holding / released / error). Release frees 39998 for the Storyteller Dashboard without restarting the Extension Host; Claim force-takes reclaimable holders on Windows (never Tabletop Simulator). Deactivate closes the listener cleanly.

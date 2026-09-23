@@ -113,6 +113,17 @@ const writeScriptUiFromStates = async (
   return result;
 };
 
+/** True when objects/Global.xml is a thin Include stub (Toronto Rising style). */
+export const looksLikeXmlIncludeStub = (content: string): boolean => {
+  return /<Include\s+src=/i.test(content) && content.length < 4096;
+};
+
+/** True when objects/Global.lua is a thin require stub. */
+export const looksLikeLuaRequireStub = (content: string): boolean => {
+  const trimmed = content.trim();
+  return /^require\s*\(/m.test(trimmed) && trimmed.length < 512;
+};
+
 /**
  * Reconcile `.tts` object files from a TTS scriptStates payload without a blind wipe.
  */
@@ -129,6 +140,66 @@ export const reconcileObjectsFromState = async (deps: ObjectSyncDeps, request: O
     sentByGuid.set(sent.guid, sent);
   }
 
+  const writeGlobalFiles = async (script: string | undefined, ui: string | undefined) => {
+    const fileName = "Global";
+    // Echo must refresh .tts/bundled for Go to Error, but must not replace Include/require stubs under objects/
+    if (script !== undefined) {
+      await writeIfChanged(`${fileName}.lua`, script, "bundle");
+      if (mode !== "echo") {
+        const existing = await readOutputFile(`${fileName}.lua`, "script");
+        if (!existing || !looksLikeLuaRequireStub(existing)) {
+          await writeIfChanged(`${fileName}.lua`, getUnbundledLua(script), "script");
+        }
+      }
+    }
+    if (ui !== undefined) {
+      await writeIfChanged(`${fileName}.xml`, ui, "bundle");
+      if (mode !== "echo") {
+        const existing = await readOutputFile(`${fileName}.xml`, "script");
+        if (!existing || !looksLikeXmlIncludeStub(existing)) {
+          await writeIfChanged(`${fileName}.xml`, unbundleXml(ui).root, "script");
+        }
+      }
+    }
+    plugin.setLoadedObject({
+      name: "Global",
+      fileName,
+      isGlobal: true,
+      data: {
+        LuaScript: script ?? "",
+        XmlUI: ui,
+      },
+    });
+  };
+
+  // Echo: always flush what we sent to .tts/bundled (TTS may omit some GUIDs from scriptStates)
+  if (mode === "echo" && sentScripts && sentScripts.length > 0) {
+    for (const sent of sentScripts) {
+      if (sent.guid === "-1") {
+        await writeGlobalFiles(sent.script, sent.ui);
+        continue;
+      }
+      const incoming = scriptStates.find((s) => s.guid === sent.guid);
+      const { fileName } = resolveFileName(sent.guid, incoming?.name, plugin);
+      await writeScriptUiFromStates(fileName, sent.script, sent.ui, false);
+      const existing = plugin.getLoadedObject(sent.guid);
+      plugin.setLoadedObject({
+        isGlobal: false,
+        name: existing?.name ?? incoming?.name ?? sent.guid,
+        guid: sent.guid,
+        fileName,
+        data: {
+          ...(existing?.data ?? {}),
+          Name: (existing?.data as ObjectData | undefined)?.Name ?? incoming?.name ?? sent.guid,
+          LuaScript: sent.script ?? (existing?.data as ObjectData | undefined)?.LuaScript ?? "",
+          XmlUI: sent.ui ?? (existing?.data as ObjectData | undefined)?.XmlUI,
+        } as ObjectData,
+      });
+    }
+    log(`objectSync echo flushed ${sentScripts.length} sent scripts to disk`);
+    return;
+  }
+
   const seenGuids = new Set<string>();
 
   for (const incoming of scriptStates) {
@@ -136,28 +207,9 @@ export const reconcileObjectsFromState = async (deps: ObjectSyncDeps, request: O
     seenGuids.add(guid);
 
     if (guid === "-1") {
-      const fileName = "Global";
       const script = sentByGuid.get("-1")?.script ?? incoming.script;
       const ui = sentByGuid.get("-1")?.ui ?? incoming.ui;
-
-      if (script !== undefined) {
-        await writeIfChanged(`${fileName}.lua`, getUnbundledLua(script), "script");
-        await writeIfChanged(`${fileName}.lua`, script, "bundle");
-      }
-      if (ui !== undefined) {
-        await writeIfChanged(`${fileName}.xml`, unbundleXml(ui).root, "script");
-        await writeIfChanged(`${fileName}.xml`, ui, "bundle");
-      }
-
-      plugin.setLoadedObject({
-        name: "Global",
-        fileName,
-        isGlobal: true,
-        data: {
-          LuaScript: script ?? "",
-          XmlUI: ui,
-        },
-      });
+      await writeGlobalFiles(script, ui);
       continue;
     }
 
