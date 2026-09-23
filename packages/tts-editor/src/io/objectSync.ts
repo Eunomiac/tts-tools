@@ -22,7 +22,10 @@ export interface ObjectSyncRequest {
   openFiles?: boolean;
 }
 
-const sanitizeBaseName = (name: string): string => name.replace(/([":<>/\\|?*\r\n])/g, "");
+const sanitizeBaseName = (name: string | undefined): string => {
+  const safe = name && name.length > 0 ? name : "Object";
+  return safe.replace(/([":<>/\\|?*\r\n])/g, "");
+};
 
 const getUnbundledLua = (script: string): string => {
   try {
@@ -170,7 +173,7 @@ export const reconcileObjectsFromState = async (deps: ObjectSyncDeps, request: O
         continue;
       }
       const unbundledData = unbundleObject(bundledData);
-      const jsonName = bundledData.Nickname?.length > 0 ? bundledData.Nickname : bundledData.Name;
+      const jsonName = bundledData.Nickname?.length > 0 ? bundledData.Nickname : bundledData.Name ?? "Object";
       const fullFileName = `${sanitizeBaseName(jsonName)}.${guid}`;
 
       // Drop stale Name.guid.* files if nickname changed
@@ -208,15 +211,46 @@ export const reconcileObjectsFromState = async (deps: ObjectSyncDeps, request: O
     // echo + incremental: prefer scriptStates (and sent scripts on echo) for Lua/XML
     await writeScriptUiFromStates(fileName, script, ui, openFiles);
 
-    const needsData = mode === "incremental" && !(await hasOutputFile(`${fileName}.data.json`));
-    if (needsData) {
+    if (mode === "incremental") {
+      const dataFile = `${fileName}.data.json`;
+      if (await hasOutputFile(dataFile)) {
+        const raw = await readOutputFile(dataFile);
+        if (raw) {
+          try {
+            const data = JSON.parse(raw) as ObjectData;
+            if (script !== undefined) {
+              data.LuaScript = script;
+            }
+            if (ui !== undefined) {
+              data.XmlUI = ui;
+            }
+            const diskName =
+              (typeof data.Nickname === "string" && data.Nickname.length > 0 && data.Nickname) ||
+              (typeof data.Name === "string" && data.Name) ||
+              objectName;
+            plugin.setLoadedObject({
+              isGlobal: false,
+              name: diskName,
+              guid,
+              fileName,
+              data,
+            });
+            continue;
+          } catch (e) {
+            log(`objectSync: bad data.json for ${guid}: ${e}`);
+          }
+        }
+      }
+
       const bundledData = await getObjectData(guid);
       if (bundledData) {
         const unbundledData = unbundleObject(bundledData);
-        await writeOutputFile(`${fileName}.data.json`, JSON.stringify(unbundledData, null, 2));
+        await writeOutputFile(dataFile, JSON.stringify(unbundledData, null, 2));
+        const jsonName =
+          bundledData.Nickname?.length > 0 ? bundledData.Nickname : bundledData.Name ?? objectName;
         plugin.setLoadedObject({
           isGlobal: false,
-          name: objectName,
+          name: jsonName,
           guid,
           fileName,
           data: unbundledData as unknown as ObjectData,
@@ -225,16 +259,19 @@ export const reconcileObjectsFromState = async (deps: ObjectSyncDeps, request: O
       }
     }
 
+    // echo (or incremental fallback): keep a minimal but Name-safe ObjectData for the tree
     const existing = plugin.getLoadedObject(guid);
+    const existingData = (existing?.data ?? {}) as Partial<ObjectData>;
     plugin.setLoadedObject({
       isGlobal: false,
       name: objectName,
       guid,
       fileName,
       data: {
-        ...(existing?.data ?? {}),
-        LuaScript: script ?? (existing?.data as ObjectData | undefined)?.LuaScript ?? "",
-        XmlUI: ui ?? (existing?.data as ObjectData | undefined)?.XmlUI,
+        ...existingData,
+        Name: existingData.Name ?? objectName,
+        LuaScript: script ?? existingData.LuaScript ?? "",
+        XmlUI: ui ?? existingData.XmlUI,
       } as ObjectData,
     });
   }
