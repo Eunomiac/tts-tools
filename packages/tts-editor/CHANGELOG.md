@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Save and Play (Full Resync)** command (and bundled variant) plus setting `ttsEditor.resyncAfterSaveAndPlay` for the old thorough `getJSON` rebuild.
 - Incremental **Get Objects** / load sync: apply `scriptStates` for Lua/XML; fetch `getJSON` only when `data.json` is missing; prune vanished GUIDs.
 - `returnID` matching for Lua returns (fixes scramble risk when imports overlap) and a single-flight import mutex.
+- Fix Load Objects / Get Objects crash (`Cannot read properties of undefined (reading 'includes')`) when reusing on-disk `data.json` without a `Name` field in the in-memory object map.
 
 ### Changed
 

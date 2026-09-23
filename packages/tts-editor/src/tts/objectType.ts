@@ -23,7 +23,11 @@ export const getObjectType = (data: ObjectData): ObjectType => {
   return getObjectTypeForName(data.Name);
 };
 
-const getObjectTypeForName = (name: string): ObjectType => {
+const getObjectTypeForName = (name: string | undefined): ObjectType => {
+  if (!name) {
+    return ObjectType.other;
+  }
+
   if (name.includes("Bag")) {
     return ObjectType.bag;
   }
