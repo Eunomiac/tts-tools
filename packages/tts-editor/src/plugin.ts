@@ -15,7 +15,7 @@ export class Plugin {
    */
   public constructor(fileHandler: FileHandler) {
     this.fileHandler = fileHandler;
-    this.output = window.createOutputChannel("TTS Edtior");
+    this.output = window.createOutputChannel("TTS Editor");
     this.status = window.createStatusBarItem("tts.status", StatusBarAlignment.Left, -1);
     this.status.command = "ttsEditor.showOutput";
 
