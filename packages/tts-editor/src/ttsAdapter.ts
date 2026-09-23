@@ -89,12 +89,12 @@ export class TTSAdapter {
   };
 
   /**
-   * Stop listening on 39998 so another app (e.g. Storyteller Dashboard) can bind it.
+   * Stop listening on 39998 so another local app can bind it.
    */
   public releaseEditorPort = async (): Promise<void> => {
     try {
       await closeEditorApi(this.api);
-      const detail = "Released port 39998. Dashboard or another tool can Claim it now.";
+      const detail = "Released port 39998. Another local tool can Claim it now.";
       this.plugin.setPortStatus("released", detail);
       this.plugin.info(detail);
       window.showInformationMessage(detail);

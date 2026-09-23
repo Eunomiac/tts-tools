@@ -113,7 +113,7 @@ const writeScriptUiFromStates = async (
   return result;
 };
 
-/** True when objects/Global.xml is a thin Include stub (Toronto Rising style). */
+/** True when objects/Global.xml is a thin Include stub (workspace keeps Sources separate from expanded bundles). */
 export const looksLikeXmlIncludeStub = (content: string): boolean => {
   return /<Include\s+src=/i.test(content) && content.length < 4096;
 };

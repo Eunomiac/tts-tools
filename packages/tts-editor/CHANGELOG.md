@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Claim / Release TTS Editor Port** commands and status-bar indicator (holding / released / error). Release frees 39998 for the Storyteller Dashboard without restarting the Extension Host; Claim force-takes reclaimable holders on Windows (never Tabletop Simulator). Deactivate closes the listener cleanly.
+- **Claim / Release TTS Editor Port** commands and status-bar indicator (holding / released / error). Release frees port 39998 for other local apps without restarting the Extension Host; Claim force-takes reclaimable holders on Windows (never Tabletop Simulator). Deactivate closes the listener cleanly.
 - **Fast Save and Play (default):** after Save and Play, scripts/UI are refreshed from the TTS echo (`scriptStates`) without wiping `.tts` or running `getJSON` for every object.
 - **Save and Play (Full Resync)** command (and bundled variant) plus setting `ttsEditor.resyncAfterSaveAndPlay` for the old thorough `getJSON` rebuild.
 - Incremental **Get Objects** / load sync: apply `scriptStates` for Lua/XML; fetch `getJSON` only when `data.json` is missing; prune vanished GUIDs.

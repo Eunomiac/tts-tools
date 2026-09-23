@@ -103,7 +103,7 @@ export class Plugin {
         this.portStatus.text = "$(plug) TTS Port: 39998";
         this.portStatus.tooltip = detail
           ? `${detail}\nClick to Release the editor port.`
-          : "Holding editor port 39998. Click to Release for the Dashboard.";
+          : "Holding editor port 39998. Click to Release for another local tool.";
         this.portStatus.backgroundColor = undefined;
         this.portStatus.command = "ttsEditor.releaseEditorPort";
         break;
