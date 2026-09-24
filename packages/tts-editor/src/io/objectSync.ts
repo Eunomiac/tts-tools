@@ -20,6 +20,12 @@ export interface ObjectSyncRequest {
   /** Scripts we just sent on Save & Play (echo path may prefer these for bundled refresh). */
   sentScripts?: OutgoingJsonObject[];
   openFiles?: boolean;
+  /**
+   * When true, drop loaded objects (and their `.tts` files) whose GUIDs are absent from
+   * `scriptStates`. Only safe when `scriptStates` is a complete inventory (Get Objects /
+   * load / full resync). Single-object paths (Update Object, push object) must leave this false.
+   */
+  pruneMissing?: boolean;
 }
 
 const sanitizeBaseName = (name: string | undefined): string => {
@@ -129,7 +135,7 @@ export const looksLikeLuaRequireStub = (content: string): boolean => {
  */
 export const reconcileObjectsFromState = async (deps: ObjectSyncDeps, request: ObjectSyncRequest): Promise<void> => {
   const { plugin, getObjectData, debug } = deps;
-  const { mode, scriptStates, sentScripts, openFiles = false } = request;
+  const { mode, scriptStates, sentScripts, openFiles = false, pruneMissing = false } = request;
   const log = debug ?? (() => undefined);
 
   plugin.setStatus(`Syncing ${scriptStates.length} scripts (${mode})`);
@@ -328,11 +334,11 @@ export const reconcileObjectsFromState = async (deps: ObjectSyncDeps, request: O
     });
   }
 
-  if (mode === "echo") {
+  if (mode === "echo" || !pruneMissing) {
     return;
   }
 
-  // Prune objects that vanished from the game
+  // Prune objects that vanished from the game (complete inventory only)
   for (const loaded of plugin.getLoadedObjects()) {
     if (loaded.isGlobal) {
       continue;

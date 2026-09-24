@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Update Object cleared the TTS Objects list (2.5.2):** Single-object sync no longer treats the one GUID as a full inventory and prunes everything else (and deletes their `.tts` files). Pruning only runs after Get Objects / load / full resync.
+
 ### Added
 
 - **TTS Objects icons (2.5.1):** Broader `Name` → icon mapping from the TTS Object Name list / `ObjectName` enum (custom model suffixes, RPG figurines, zones, tools, tables, stacks). Unknown types use a generic Codicon (`symbol-misc`). New classes without PNG assets use VS Code ThemeIcons (package, clock, note, bounding-box, …).

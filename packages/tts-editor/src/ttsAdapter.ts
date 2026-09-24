@@ -416,6 +416,8 @@ spawnObjectJSON({
             scriptStates: message.scriptStates,
             sentScripts,
             openFiles: false,
+            // loadingANewGame always ships the full script inventory — safe to prune vanished GUIDs.
+            pruneMissing: mode !== "echo",
           }
         )
       );
@@ -641,9 +643,11 @@ return nil
           debug: this.plugin.debug,
         },
         {
+          // Refresh this GUID only — never prune the rest of the TTS Objects list.
           mode: "full",
           scriptStates: [{ guid, name: guid, script: "" }],
           openFiles,
+          pruneMissing: false,
         }
       );
     });
