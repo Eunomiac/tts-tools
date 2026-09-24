@@ -6,6 +6,10 @@ export type TtsInboundHandler = (message: Record<string, unknown>) => void;
 
 /**
  * Listen on TTS editor port 39998 for inbound External Editor API messages.
+ *
+ * TTS opens a connection, writes one JSON document (often pretty-printed with
+ * newlines), then closes. Match @matanlurey/tts-editor: accumulate until `end`,
+ * then parse once — do not split on newlines.
  */
 export const listenTtsInbound = (
   onMessage: TtsInboundHandler,
@@ -13,35 +17,29 @@ export const listenTtsInbound = (
 ): Promise<net.Server> => {
   return new Promise((resolve, reject) => {
     const server = net.createServer((socket) => {
-      let buffer = "";
-      socket.setEncoding("utf8");
-      socket.on("data", (chunk: string) => {
-        buffer += chunk;
-        let newline = buffer.indexOf("\n");
-        while (newline >= 0) {
-          const line = buffer.slice(0, newline).trim();
-          buffer = buffer.slice(newline + 1);
-          newline = buffer.indexOf("\n");
-          if (!line) {
-            continue;
-          }
-          try {
-            const parsed = JSON.parse(line) as Record<string, unknown>;
-            onMessage(parsed);
-          } catch (error) {
-            console.error("[tts-gateway] bad inbound JSON:", error);
-          }
+      const chunks: Buffer[] = [];
+      socket.on("data", (data: Buffer) => {
+        chunks.push(Buffer.isBuffer(data) ? data : Buffer.from(data));
+      });
+      socket.on("end", () => {
+        if (chunks.length === 0) {
+          return;
         }
-        // TTS sometimes sends a single JSON object without trailing newline
-        if (buffer.trim().length > 0 && buffer.trim().startsWith("{") && buffer.trim().endsWith("}")) {
-          try {
-            const parsed = JSON.parse(buffer.trim()) as Record<string, unknown>;
-            buffer = "";
-            onMessage(parsed);
-          } catch {
-            // wait for more data
-          }
+        const text = Buffer.concat(chunks).toString("utf8").replace(/^\uFEFF/, "").trim();
+        if (!text) {
+          return;
         }
+        try {
+          const parsed = JSON.parse(text) as Record<string, unknown>;
+          onMessage(parsed);
+        } catch (error) {
+          const preview = text.length > 120 ? `${text.slice(0, 120)}…` : text;
+          console.error(`[tts-gateway] bad inbound JSON (${text.length} chars):`, error);
+          console.error(`[tts-gateway] preview: ${preview}`);
+        }
+      });
+      socket.on("error", (error) => {
+        console.error("[tts-gateway] inbound socket error:", error);
       });
     });
 
