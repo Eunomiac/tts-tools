@@ -1,9 +1,10 @@
+import { PortHoldState } from "./portHoldState";
 import ExternalEditorApi from "@matanlurey/tts-editor";
 import { Server } from "net";
 
 import { reclaimEditorPort, TTS_EDITOR_PORT } from "./editorPort";
 
-export type PortHoldState = "holding" | "gateway" | "released" | "error";
+export type { PortHoldState } from "./portHoldState";
 
 type ApiInternals = {
   server: Server;

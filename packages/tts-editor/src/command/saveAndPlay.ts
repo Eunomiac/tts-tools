@@ -1,4 +1,4 @@
-import { TTSAdapter } from "../ttsAdapter";
+import type { TTSAdapter } from "../ttsAdapter";
 
 export const saveAndPlay = (adapter: TTSAdapter) => () => {
   adapter.saveAndPlay();

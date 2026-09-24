@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **TTS editor gateway (2.4.0):** a helper process holds port **39998** and fans events out over control port **39997** (NDJSON). The extension registers as `TTSTOOLS` via `@tts-tools/gateway-client`. Claim starts the helper; Release / deactivate stops it so other local tools can bind 39998. Optional `<@TAG@>` print/error routing; proxied `executeLua` with return demux.
+
+### Fixed
+
+- **2.4.1:** Spawn the gateway with a real `node` binary (not Cursor/Electron `process.execPath`). Activate on startup; keep status bar / command stubs if adapter load fails so Get Objects is not “command not found”.
 - **Bundled Save & Play + Global Include stubs:** when `.tts/objects/Global.xml` (or `.lua`) is a thin `<Include>` / `require` stub, Bundled Save & Play rebundles Global from that stub so UI changes still reach TTS. Echo writes what was sent into `.tts/bundled` without replacing the objects stubs.
 - **Claim / Release TTS Editor Port** commands and status-bar indicator (gateway / released / error).
 - **Fast Save and Play (default):** after Save and Play, scripts/UI are refreshed from the TTS echo (`scriptStates`) without wiping `.tts` or running `getJSON` for every object.

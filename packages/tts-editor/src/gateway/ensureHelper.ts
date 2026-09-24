@@ -43,6 +43,17 @@ export const resolveGatewayCli = (extensionPath: string): string => {
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
+ * Extension Host `process.execPath` is Cursor/Electron — do not spawn the helper with it.
+ * Prefer a real Node binary on PATH.
+ */
+const resolveNodeExecutable = (): string => {
+  if (process.execPath && /node(\.exe)?$/i.test(process.execPath)) {
+    return process.execPath;
+  }
+  return process.platform === "win32" ? "node.exe" : "node";
+};
+
+/**
  * Ensure the gateway helper is listening on the control port. Spawns it if needed.
  */
 export const ensureGatewayHelper = async (
@@ -56,13 +67,15 @@ export const ensureGatewayHelper = async (
   }
 
   const cliJs = resolveGatewayCli(extensionPath);
-  log?.(`Spawning tts-gateway: ${cliJs}`);
+  const nodeExec = resolveNodeExecutable();
+  log?.(`Spawning tts-gateway: ${nodeExec} ${cliJs}`);
 
-  const child = spawn(process.execPath, [cliJs], {
+  const child = spawn(nodeExec, [cliJs], {
     cwd: path.dirname(cliJs),
     stdio: ["ignore", "pipe", "pipe"],
     windowsHide: true,
     detached: false,
+    shell: process.platform === "win32",
   });
   ownedHelper = child;
 

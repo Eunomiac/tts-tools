@@ -1,4 +1,4 @@
-import { TTSAdapter } from "../ttsAdapter";
+import type { TTSAdapter } from "../ttsAdapter";
 
 export const claimEditorPort = (adapter: TTSAdapter) => () => {
   void adapter.claimEditorPort();

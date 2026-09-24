@@ -1,5 +1,5 @@
 import { Selection, TextDocument, window } from "vscode";
-import { TTSAdapter } from "../ttsAdapter";
+import type { TTSAdapter } from "../ttsAdapter";
 
 export default (adapter: TTSAdapter) => (arg?: string) => {
   if (arg) {

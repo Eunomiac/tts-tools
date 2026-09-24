@@ -2,7 +2,7 @@ import { OutputChannel, ProgressLocation, StatusBarAlignment, StatusBarItem, The
 
 import { LoadedObject, SetLoadedObject } from "./model/objectData";
 import { FileHandler, hasOutputFile, writeOutputFile } from "./io/files";
-import { PortHoldState } from "./io/portSession";
+import { PortHoldState } from "./io/portHoldState";
 import { command } from "./command";
 
 export class Plugin {
