@@ -6,7 +6,7 @@
   },
   "publisher": "eunomiac",
   "description": "Community fork of Sebastian Stern’s TTS Editor — External Editor API for Tabletop Simulator (scripts, XmlUI bundling, objects). Not affiliated with Berserk Games.",
-  "version": "2.4.0",
+  "version": "2.4.1",
   "engines": {
     "vscode": "^1.96.0"
   },
@@ -24,6 +24,7 @@
     "Other"
   ],
   "activationEvents": [
+    "onStartupFinished",
     "onLanguage:lua",
     "workspaceContains:**/*.lua",
     "workspaceContains:**/*.ttslua"

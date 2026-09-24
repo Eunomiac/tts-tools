@@ -1,7 +1,7 @@
 import { window } from "vscode";
 
 import { Plugin } from "../plugin";
-import { TTSAdapter } from "../ttsAdapter";
+import type { TTSAdapter } from "../ttsAdapter";
 
 export default (plugin: Plugin, adapter: TTSAdapter) => async () => {
   if (!window.activeTextEditor) {
