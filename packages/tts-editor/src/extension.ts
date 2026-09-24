@@ -3,6 +3,7 @@ import { ExtensionContext, commands, window } from "vscode";
 import { claimEditorPort, releaseEditorPort } from "./command/claimEditorPort";
 import createUi from "./command/createUi";
 import executeScript from "./command/executeScript";
+import getObject from "./command/getObject";
 import getScripts from "./command/getScripts";
 import goToLastError from "./command/goToLastError";
 import openBundledScript from "./command/openBundledScript";
@@ -54,6 +55,7 @@ export function activate(context: ExtensionContext) {
     };
 
     registerCommand("getObjects", getScripts(adapter));
+    registerCommand("getObject", getObject(plugin, adapter));
     registerCommand("saveAndPlay", saveAndPlay(adapter));
     registerCommand("saveAndPlayBundled", saveAndPlayBundled(adapter));
     registerCommand("saveAndPlayFullResync", saveAndPlayFullResync(adapter));
@@ -91,6 +93,7 @@ export function activate(context: ExtensionContext) {
     // Register stubs so toolbar / palette commands are not "not found"
     for (const name of [
       "getObjects",
+      "getObject",
       "saveAndPlay",
       "saveAndPlayBundled",
       "saveAndPlayFullResync",
