@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **2.4.2:** Bundle the gateway helper under `dist/tts-gateway-helper/` so it no longer overwrites compiled `dist/gateway/ensureHelper.js` (activation “Cannot find module” error).
 - **2.4.1:** Spawn the gateway with a real `node` binary (not Cursor/Electron `process.execPath`). Activate on startup; keep status bar / command stubs if adapter load fails so Get Objects is not “command not found”.
 - **Bundled Save & Play + Global Include stubs:** when `.tts/objects/Global.xml` (or `.lua`) is a thin `<Include>` / `require` stub, Bundled Save & Play rebundles Global from that stub so UI changes still reach TTS. Echo writes what was sent into `.tts/bundled` without replacing the objects stubs.
 - **Claim / Release TTS Editor Port** commands and status-bar indicator (gateway / released / error).
