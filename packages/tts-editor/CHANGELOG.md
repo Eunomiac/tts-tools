@@ -9,13 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **TTS editor gateway (2.4.0):** a helper process holds port **39998** and fans events out over control port **39997** (NDJSON). The extension registers as `TTSTOOLS` via `@tts-tools/gateway-client`. Claim starts the helper; Release / deactivate stops it so other local tools can bind 39998. Optional `<@TAG@>` print/error routing; proxied `executeLua` with return demux.
-
-### Fixed
-
-- **2.4.3:** Parse TTS inbound messages like the upstream editor — one JSON document per TCP connection (accumulate until socket end). Fixes flood of “bad inbound JSON” errors from splitting pretty-printed payloads on newlines.
-- **2.4.2:** Bundle the gateway helper under `dist/tts-gateway-helper/` so it no longer overwrites compiled `dist/gateway/ensureHelper.js` (activation “Cannot find module” error).
-- **2.4.1:** Spawn the gateway with a real `node` binary (not Cursor/Electron `process.execPath`). Activate on startup; keep status bar / command stubs if adapter load fails so Get Objects is not “command not found”.
+- **Gateway-client failover (2.5.0 / `@tts-tools/gateway-client` 0.2.0):** `connectGateway()` prefers the helper on **39997**, falls back to binding **39998** directly when the gateway is down, and rejoins when it returns. Pass `failover: false` when your app owns the helper (TTS Tools extension). See package README + PROTOCOL.md.
+- **TTS editor gateway (2.4.x):** helper holds **39998**; control NDJSON on **39997**; extension registers as `TTSTOOLS`. Claim starts the helper; Release / deactivate stops it. Optional `<@TAG@>` routing; proxied `executeLua`.
 - **Bundled Save & Play + Global Include stubs:** when `.tts/objects/Global.xml` (or `.lua`) is a thin `<Include>` / `require` stub, Bundled Save & Play rebundles Global from that stub so UI changes still reach TTS. Echo writes what was sent into `.tts/bundled` without replacing the objects stubs.
 - **Claim / Release TTS Editor Port** commands and status-bar indicator (gateway / released / error).
 - **Fast Save and Play (default):** after Save and Play, scripts/UI are refreshed from the TTS echo (`scriptStates`) without wiping `.tts` or running `getJSON` for every object.
@@ -23,6 +18,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Incremental **Get Objects** / load sync: apply `scriptStates` for Lua/XML; fetch `getJSON` only when `data.json` is missing; prune vanished GUIDs.
 - `returnID` matching for Lua returns (fixes scramble risk when imports overlap) and a single-flight import mutex.
 - Fix Load Objects / Get Objects crash (`Cannot read properties of undefined (reading 'includes')`) when reusing on-disk `data.json` without a `Name` field in the in-memory object map.
+
+### Fixed
+
+- **2.4.3:** Parse TTS inbound messages like the upstream editor — one JSON document per TCP connection (accumulate until socket end). Fixes flood of “bad inbound JSON” errors from splitting pretty-printed payloads on newlines.
+- **2.4.2:** Bundle the gateway helper under `dist/tts-gateway-helper/` so it no longer overwrites compiled `dist/gateway/ensureHelper.js` (activation “Cannot find module” error).
+- **2.4.1:** Spawn the gateway with a real `node` binary (not Cursor/Electron `process.execPath`). Activate on startup; keep status bar / command stubs if adapter load fails so Get Objects is not “command not found”.
 
 ### Changed
 

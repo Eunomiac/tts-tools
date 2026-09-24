@@ -20,8 +20,8 @@ Fork additions (also listed in the changelog):
 
 - Faster Save & Play sync (incremental disk refresh; optional Full Resync)
 - Local multi-client **TTS editor gateway** (helper holds 39998; apps register on control port 39997)
+- `@tts-tools/gateway-client` with **direct↔gateway failover** (bind 39998 when the helper is down; rejoin when it returns)
 - Claim / Release starts or stops the gateway so other local tools can bind 39998 directly
-- `@tts-tools/gateway-client` for third-party Node apps (full auto-failover comes in a later release)
 
 ## Preview
 
