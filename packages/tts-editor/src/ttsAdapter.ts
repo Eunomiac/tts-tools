@@ -133,7 +133,12 @@ export class TTSAdapter {
     }
     const extensionPath = this.plugin.fileHandler.extensionPath;
     await ensureGatewayHelper(extensionPath, undefined, this.plugin.info);
-    const session = await connectGateway({ routeTag: ROUTE_TAG, clientId: "ttstools-extension" });
+    const session = await connectGateway({
+      routeTag: ROUTE_TAG,
+      clientId: "ttstools-extension",
+      // Extension owns the helper lifecycle; do not steal 39998 via direct failover.
+      failover: false,
+    });
     this.bindSession(session);
     this.session = session;
     return session;
@@ -181,6 +186,11 @@ export class TTSAdapter {
       if (status.mode === "disconnected") {
         this.session = undefined;
         this.plugin.setPortStatus("error", status.detail ?? "Gateway disconnected");
+      } else if (status.mode === "gateway") {
+        this.plugin.setPortStatus("gateway", status.detail ?? "Connected via gateway");
+      } else if (status.mode === "direct") {
+        // Unexpected for the extension (failover:false), but surface clearly if it happens.
+        this.plugin.setPortStatus("holding", status.detail ?? "Direct editor port");
       }
     });
   };
