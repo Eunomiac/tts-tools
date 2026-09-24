@@ -9,10 +9,11 @@ import {
   window,
 } from "vscode";
 
-import { getOutputFileUri, iconPath } from "../io/files";
+import { getOutputFileUri } from "../io/files";
 import { LoadedObject } from "../model/objectData";
 import { Plugin } from "../plugin";
-import { ObjectType, getObjectType } from "../tts/objectType";
+import { getObjectType } from "../tts/objectType";
+import { objectTypeIcon } from "../tts/objectIcon";
 
 export class TTSObjectTreeProvider implements TreeDataProvider<TTSItem> {
   private plugin: Plugin;
@@ -118,12 +119,7 @@ export class TTSObjectItem extends TreeItem {
       return new ThemeIcon("globe");
     }
 
-    const objectType = getObjectType(this.object.data);
-    if (objectType === ObjectType.other) {
-      return ThemeIcon.File;
-    }
-
-    return iconPath(objectType);
+    return objectTypeIcon(getObjectType(this.object.data));
   };
 }
 
