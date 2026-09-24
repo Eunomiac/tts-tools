@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **TTS Objects icons (2.5.1):** Broader `Name` → icon mapping from the TTS Object Name list / `ObjectName` enum (custom model suffixes, RPG figurines, zones, tools, tables, stacks). Unknown types use a generic Codicon (`symbol-misc`). New classes without PNG assets use VS Code ThemeIcons (package, clock, note, bounding-box, …).
 - **Gateway-client failover (2.5.0 / `@tts-tools/gateway-client` 0.2.0):** `connectGateway()` prefers the helper on **39997**, falls back to binding **39998** directly when the gateway is down, and rejoins when it returns. Pass `failover: false` when your app owns the helper (TTS Tools extension). See package README + PROTOCOL.md.
 - **TTS editor gateway (2.4.x):** helper holds **39998**; control NDJSON on **39997**; extension registers as `TTSTOOLS`. Claim starts the helper; Release / deactivate stops it. Optional `<@TAG@>` routing; proxied `executeLua`.
 - **Bundled Save & Play + Global Include stubs:** when `.tts/objects/Global.xml` (or `.lua`) is a thin `<Include>` / `require` stub, Bundled Save & Play rebundles Global from that stub so UI changes still reach TTS. Echo writes what was sent into `.tts/bundled` without replacing the objects stubs.
