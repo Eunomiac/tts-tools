@@ -11,6 +11,10 @@ export class FileHandler {
     this.extension = extension;
   }
 
+  get extensionPath(): string {
+    return this.extension.extensionPath;
+  }
+
   /**
    * Reads a file from the bundled files for the extension.
    */

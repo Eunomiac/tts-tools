@@ -19,8 +19,9 @@ Extension support for the [Tabletop Simulator External Editor API](https://api.t
 Fork additions (also listed in the changelog):
 
 - Faster Save & Play sync (incremental disk refresh; optional Full Resync)
-- Claim / Release of the TTS External Editor port so other local tools can share it
-- Planned: a local multi-client TTS editor gateway (not shipped yet)
+- Local multi-client **TTS editor gateway** (helper holds 39998; apps register on control port 39997)
+- Claim / Release starts or stops the gateway so other local tools can bind 39998 directly
+- `@tts-tools/gateway-client` for third-party Node apps (full auto-failover comes in a later release)
 
 ## Preview
 

@@ -3,7 +3,7 @@ import { Server } from "net";
 
 import { reclaimEditorPort, TTS_EDITOR_PORT } from "./editorPort";
 
-export type PortHoldState = "holding" | "released" | "error";
+export type PortHoldState = "holding" | "gateway" | "released" | "error";
 
 type ApiInternals = {
   server: Server;

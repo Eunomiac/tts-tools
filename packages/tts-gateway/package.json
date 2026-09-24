@@ -1,0 +1,25 @@
+{
+  "name": "@tts-tools/tts-gateway",
+  "description": "Local TTS External Editor gateway — sole binder of port 39998 with a multi-client control API.",
+  "version": "0.1.0",
+  "author": "Eunomiac",
+  "license": "MIT",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "tts-gateway": "dist/cli.js"
+  },
+  "scripts": {
+    "build": "rimraf dist && tsc -p tsconfig.build.json",
+    "start": "node dist/cli.js"
+  },
+  "devDependencies": {
+    "@types/node": "~20.17.19",
+    "rimraf": "~6.0.1",
+    "typescript": "5.7.3"
+  },
+  "files": [
+    "/dist",
+    "/src"
+  ]
+}

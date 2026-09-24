@@ -1,4 +1,4 @@
-import ExternalEditorApi, {
+import {
   CustomMessage,
   ErrorMessage,
   LoadingANewGame,
@@ -7,11 +7,14 @@ import ExternalEditorApi, {
   PrintDebugMessage,
   PushingNewObject,
 } from "@matanlurey/tts-editor";
+import { connectGateway, type GatewaySession } from "@tts-tools/gateway-client";
 import { TTSObject as SaveFileObject, bundleObject } from "@tts-tools/savefile";
 import { Range, Uri, window, workspace } from "vscode";
 
 import { command } from "./command";
 import configuration from "./configuration";
+import { ensureGatewayHelper } from "./gateway/ensureHelper";
+import { stopGatewayHelper } from "./gateway/stopHelper";
 import { selectObject } from "./interaction/selectObject";
 import {
   bundleLua,
@@ -30,8 +33,6 @@ import {
   reconcileObjectsFromState,
   SyncMode,
 } from "./io/objectSync";
-import { closeEditorApi, isEditorApiListening, listenEditorApi, prepareAndListen } from "./io/portSession";
-import { installReturnIdDemux } from "./io/returnIdDemux";
 import {
   EditorMessage,
   MessageFormat,
@@ -43,9 +44,10 @@ import { LoadedObject } from "./model/objectData";
 import { Plugin } from "./plugin";
 
 const polyFills = ["object", "write"];
+const ROUTE_TAG = "TTSTOOLS";
 
 export class TTSAdapter {
-  private api: ExternalEditorApi;
+  private session: GatewaySession | undefined;
   private plugin: Plugin;
   private lastError: Maybe<ErrorMessage> = undefined;
   private importMutex = new ImportMutex();
@@ -55,29 +57,20 @@ export class TTSAdapter {
   private pendingSentScripts: OutgoingJsonObject[] | undefined;
 
   public constructor(plugin: Plugin) {
-    this.api = new ExternalEditorApi();
     this.plugin = plugin;
-
-    this.bindApi(this.api);
-    void this.startListeningOnActivate();
+    void this.startGatewayOnActivate();
   }
 
   /**
-   * Start (or resume) listening on editor port 39998. Force-claims reclaimable holders on Windows.
+   * Start (or resume) the gateway helper and register as TTSTOOLS.
    */
   public claimEditorPort = async (): Promise<void> => {
     try {
-      const { detail } = await this.plugin.progress("Claiming TTS editor port", async () => {
-        if (isEditorApiListening(this.api)) {
-          return { port: 39998, detail: "Already holding the editor port." };
-        }
-        // Fresh API after close so upstream connection handlers attach on listen again
-        await closeEditorApi(this.api);
-        this.api = new ExternalEditorApi();
-        this.bindApi(this.api);
-        return prepareAndListen(this.api);
+      const detail = await this.plugin.progress("Claiming TTS editor port (gateway)", async () => {
+        await this.connectSession();
+        return "Gateway helper holding 39998; registered as TTSTOOLS.";
       });
-      this.plugin.setPortStatus("holding", detail);
+      this.plugin.setPortStatus("gateway", detail);
       this.plugin.info(detail);
       window.showInformationMessage(detail);
     } catch (e) {
@@ -89,12 +82,13 @@ export class TTSAdapter {
   };
 
   /**
-   * Stop listening on 39998 so another local app can bind it.
+   * Stop the gateway helper so another local app can bind 39998 directly.
    */
   public releaseEditorPort = async (): Promise<void> => {
     try {
-      await closeEditorApi(this.api);
-      const detail = "Released port 39998. Another local tool can Claim it now.";
+      await this.disconnectSession();
+      await stopGatewayHelper(undefined, this.plugin.info);
+      const detail = "Released gateway. Another local tool can Claim 39998 now.";
       this.plugin.setPortStatus("released", detail);
       this.plugin.info(detail);
       window.showInformationMessage(detail);
@@ -106,23 +100,96 @@ export class TTSAdapter {
     }
   };
 
-  public isHoldingEditorPort = (): boolean => isEditorApiListening(this.api);
+  public isHoldingEditorPort = (): boolean => this.session !== undefined;
 
-  /** Close the editor listener; called from extension deactivate. */
+  /** Close session and stop helper; called from extension deactivate. */
   public dispose = async (): Promise<void> => {
     try {
-      await closeEditorApi(this.api);
+      await this.disconnectSession();
+      await stopGatewayHelper(undefined, this.plugin.info);
     } catch (e) {
       this.plugin.error(`dispose: ${e}`);
     }
     this.plugin.setPortStatus("released", "Extension deactivated.");
   };
 
+  private startGatewayOnActivate = async () => {
+    try {
+      await this.connectSession();
+      this.plugin.setPortStatus("gateway", "Gateway helper holding editor port 39998.");
+      this.plugin.info("TTS gateway connected (TTSTOOLS).");
+    } catch (e) {
+      const message =
+        `Could not start TTS gateway (${e}). Use “Claim TTS Editor Port” to retry, ` +
+        `or free port 39998 / 39997 and try again.`;
+      this.plugin.setPortStatus("error", message);
+      this.plugin.error(message);
+    }
+  };
+
+  private connectSession = async (): Promise<GatewaySession> => {
+    if (this.session) {
+      return this.session;
+    }
+    const extensionPath = this.plugin.fileHandler.extensionPath;
+    await ensureGatewayHelper(extensionPath, undefined, this.plugin.info);
+    const session = await connectGateway({ routeTag: ROUTE_TAG, clientId: "ttstools-extension" });
+    this.bindSession(session);
+    this.session = session;
+    return session;
+  };
+
+  private disconnectSession = async (): Promise<void> => {
+    if (!this.session) {
+      return;
+    }
+    try {
+      await this.session.close();
+    } catch {
+      // ignore
+    }
+    this.session = undefined;
+  };
+
+  private requireSession = (): GatewaySession => {
+    if (!this.session) {
+      throw new Error("Not connected to TTS gateway. Use Claim TTS Editor Port first.");
+    }
+    return this.session;
+  };
+
+  private bindSession = (session: GatewaySession) => {
+    session.on("loadingANewGame", (payload) => {
+      void this.onLoadGame(payload as unknown as LoadingANewGame);
+    });
+    session.on("pushingNewObject", (payload) => {
+      void this.onPushObject(payload as unknown as PushingNewObject);
+    });
+    session.on("objectCreated", (payload) => {
+      void this.onObjectCreated(payload as unknown as ObjectCreated);
+    });
+    session.on("print", (message) => {
+      void this.onPrintDebugMessage({ messageID: 2, message } as PrintDebugMessage);
+    });
+    session.on("error", (payload) => {
+      void this.onErrorMessage(payload as unknown as ErrorMessage);
+    });
+    session.on("customMessage", (payload) => {
+      void this.onCustomMessage(payload as unknown as CustomMessage);
+    });
+    session.on("status", (status) => {
+      if (status.mode === "disconnected") {
+        this.session = undefined;
+        this.plugin.setPortStatus("error", status.detail ?? "Gateway disconnected");
+      }
+    });
+  };
+
   /**
    * Retrieves scripts from currently open game.
    */
   public getObjects = async () => {
-    this.api.getLuaScripts();
+    await this.requireSession().getLuaScripts();
   };
 
   /**
@@ -146,7 +213,7 @@ export class TTSAdapter {
         this.expectSaveAndPlayEcho = true;
         this.forceFullResyncOnEcho = options.fullResync === true || configuration.resyncAfterSaveAndPlay();
         this.pendingSentScripts = scripts;
-        this.plugin.progress("Sending scripts to TTS", async () => this.api.saveAndPlay(scripts));
+        this.plugin.progress("Sending scripts to TTS", async () => this.requireSession().saveAndPlay(scripts));
       } else {
         [...errors].forEach((message) => window.showErrorMessage(message));
       }
@@ -188,7 +255,7 @@ export class TTSAdapter {
 
     completeScript += script;
 
-    return this.api.executeLuaCodeAndReturn(completeScript) as T;
+    return this.requireSession().executeLua(completeScript) as Promise<T>;
   };
 
   public executeMacro = async (name: string, object?: LoadedObject) => {
@@ -208,7 +275,7 @@ export class TTSAdapter {
    * @param object - Table to be sent to game
    */
   public async customMessage(object: EditorMessage) {
-    return this.api.customMessage(object);
+    return this.requireSession().customMessage(object);
   }
 
   public async updateObject(object: LoadedObject) {
@@ -302,30 +369,6 @@ spawnObjectJSON({
         const modulePath = module.name.replace(/\./g, "/");
         writeOutputFile(`${modulePath}.xml`, module.content, "library");
       }
-    }
-  };
-
-  private bindApi = (api: ExternalEditorApi) => {
-    installReturnIdDemux(api);
-    api.on("loadingANewGame", this.onLoadGame.bind(this));
-    api.on("pushingNewObject", this.onPushObject.bind(this));
-    api.on("objectCreated", this.onObjectCreated.bind(this));
-    api.on("printDebugMessage", this.onPrintDebugMessage.bind(this));
-    api.on("errorMessage", this.onErrorMessage.bind(this));
-    api.on("customMessage", this.onCustomMessage.bind(this));
-  };
-
-  private startListeningOnActivate = async () => {
-    try {
-      await listenEditorApi(this.api);
-      this.plugin.setPortStatus("holding", "Listening on editor port 39998.");
-      this.plugin.info("Listening on TTS editor port 39998.");
-    } catch (e) {
-      const message =
-        `Could not listen on 39998 (${e}). Another tool may hold the port — ` +
-        `use “Claim TTS Editor Port” after they Release, or Claim to force-take reclaimable holders.`;
-      this.plugin.setPortStatus("error", message);
-      this.plugin.error(message);
     }
   };
 
@@ -495,7 +538,7 @@ spawnObjectJSON({
       return;
     }
 
-    const message = customMessage.customMessage as RequestEditorMessage;
+    const message = (customMessage.customMessage ?? customMessage) as RequestEditorMessage;
 
     this.plugin.debug(`recieved onCustomMessage ${JSON.stringify(message, null, 2)}`);
 

@@ -6,7 +6,7 @@
   },
   "publisher": "eunomiac",
   "description": "Community fork of Sebastian Stern’s TTS Editor — External Editor API for Tabletop Simulator (scripts, XmlUI bundling, objects). Not affiliated with Berserk Games.",
-  "version": "2.3.1",
+  "version": "2.4.0",
   "engines": {
     "vscode": "^1.96.0"
   },
@@ -337,8 +337,9 @@
   "icon": "media/icon.png",
   "scripts": {
     "vscode:package": "node -e \"require('fs').mkdirSync(require('path').join(__dirname,'../../dist'),{recursive:true})\" && vsce package -o ../../dist/tts-tools.vsix",
-    "vscode:prepublish": "npm run compile",
+    "vscode:prepublish": "npm run compile && npm run copy-gateway",
     "compile": "tsc -p ./",
+    "copy-gateway": "node ./scripts/copy-gateway.js",
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src --ext ts",
@@ -346,6 +347,7 @@
   },
   "dependencies": {
     "@matanlurey/tts-editor": "github:sebaestschjin/tts-editor#dist",
+    "@tts-tools/gateway-client": "file:../gateway-client",
     "@tts-tools/savefile": "file:../savefile",
     "@tts-tools/xmlbundle": "file:../xmlbundle",
     "luabundle": "^1.7.0"

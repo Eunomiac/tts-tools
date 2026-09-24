@@ -8,3 +8,4 @@ src/**
 **/*.ts
 docs/**
 eslint.config.mjs
+scripts/**
