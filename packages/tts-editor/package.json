@@ -6,7 +6,7 @@
   },
   "publisher": "eunomiac",
   "description": "Community fork of Sebastian Stern’s TTS Editor — External Editor API for Tabletop Simulator (scripts, XmlUI bundling, objects). Not affiliated with Berserk Games.",
-  "version": "2.5.2",
+  "version": "2.5.3",
   "engines": {
     "vscode": "^1.96.0"
   },
@@ -113,6 +113,12 @@
         "command": "ttsEditor.updateObject",
         "title": "Update Object",
         "category": "TTS Editor"
+      },
+      {
+        "command": "ttsEditor.getObject",
+        "title": "Get Object",
+        "category": "TTS Editor",
+        "icon": "$(git-fetch)"
       },
       {
         "command": "ttsEditor.locateObject",
@@ -231,6 +237,10 @@
           "command": "ttsEditor.getObjectState",
           "when": "view == ttsEditor.objectView && (viewItem =~ /^object/ || viewItem =~ /^global/)",
           "group": "inline@2"
+        },
+        {
+          "command": "ttsEditor.getObject",
+          "when": "view == ttsEditor.objectView && viewItem =~ /^object/"
         },
         {
           "command": "ttsEditor.updateObject",

@@ -7,11 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed
-
-- **Update Object cleared the TTS Objects list (2.5.2):** Single-object sync no longer treats the one GUID as a full inventory and prunes everything else (and deletes their `.tts` files). Pruning only runs after Get Objects / load / full resync.
-
 ### Added
+
+- **Get Object (2.5.3):** Right-click a row in TTS Objects (or Command Palette) to refresh that one object from the live table via `getJSON`, without a full Get Objects / prune.
 
 - **TTS Objects icons (2.5.1):** Broader `Name` → icon mapping from the TTS Object Name list / `ObjectName` enum (custom model suffixes, RPG figurines, zones, tools, tables, stacks). Unknown types use a generic Codicon (`symbol-misc`). New classes without PNG assets use VS Code ThemeIcons (package, clock, note, bounding-box, …).
 - **Gateway-client failover (2.5.0 / `@tts-tools/gateway-client` 0.2.0):** `connectGateway()` prefers the helper on **39997**, falls back to binding **39998** directly when the gateway is down, and rejoins when it returns. Pass `failover: false` when your app owns the helper (TTS Tools extension). See package README + PROTOCOL.md.
@@ -26,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Update Object cleared the TTS Objects list (2.5.2):** Single-object sync no longer treats the one GUID as a full inventory and prunes everything else (and deletes their `.tts` files). Pruning only runs after Get Objects / load / full resync.
 - **2.4.3:** Parse TTS inbound messages like the upstream editor — one JSON document per TCP connection (accumulate until socket end). Fixes flood of “bad inbound JSON” errors from splitting pretty-printed payloads on newlines.
 - **2.4.2:** Bundle the gateway helper under `dist/tts-gateway-helper/` so it no longer overwrites compiled `dist/gateway/ensureHelper.js` (activation “Cannot find module” error).
 - **2.4.1:** Spawn the gateway with a real `node` binary (not Cursor/Electron `process.execPath`). Activate on startup; keep status bar / command stubs if adapter load fails so Get Objects is not “command not found”.

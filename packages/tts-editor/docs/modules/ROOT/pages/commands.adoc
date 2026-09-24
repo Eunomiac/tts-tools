@@ -25,6 +25,11 @@ In this case the selection dialog is skipped and the object from the view is use
 Scripts are unbundled while doing so, but a bundled reference is kept as well (see xref:bundling.adoc[]).
 This command is also automatically executed whenever you load a new game in TTS.
 
+| Get Object
+| Refresh **one** selected object from the **live** table in TTS (`getObjectFromGUID` + `getJSON`).
+Rewrites that object's `.tts` data/script/UI files without touching the rest of the TTS Objects list.
+Does **not** read from a save file on disk — only the running game.
+
 | Save and Play
 | (see xref:bundling.adoc[]).
 

@@ -288,6 +288,26 @@ export class TTSAdapter {
     return this.requireSession().customMessage(object);
   }
 
+  /**
+   * Refresh one object's `.tts` files from the **live** table (not the save file on disk).
+   * Uses `getObjectFromGUID` + `getJSON` in the running game; does not prune other loaded objects.
+   */
+  public async getObject(object: LoadedObject) {
+    if (object.isGlobal) {
+      window.showWarningMessage("Get Object is for table objects. Use Get Objects to refresh Global.");
+      return;
+    }
+    try {
+      await this.plugin.progress(`Reading ${object.name}`, async () => {
+        await this.readObject(object.guid, false);
+      });
+      this.plugin.setStatus(`Updated ${object.name} (${object.guid}) from live TTS.`);
+      command.refreshView();
+    } catch (e) {
+      window.showErrorMessage(`Error while getting object ${object.guid}:\n${e}`);
+    }
+  }
+
   public async updateObject(object: LoadedObject) {
     const readObjectFile = async (extension: string) => {
       try {
