@@ -2,7 +2,8 @@ const fs = require("fs");
 const path = require("path");
 
 const src = path.join(__dirname, "..", "..", "tts-gateway", "dist");
-const dest = path.join(__dirname, "..", "dist", "gateway");
+// Must NOT use dist/gateway — that folder holds compiled extension modules (ensureHelper.js).
+const dest = path.join(__dirname, "..", "dist", "tts-gateway-helper");
 
 const copyRecursive = (from, to) => {
   fs.mkdirSync(to, { recursive: true });

@@ -19,10 +19,10 @@ export const defaultPidFilePath = (): string => {
 };
 
 /**
- * Resolve gateway CLI path: VSIX `dist/gateway/cli.js`, else monorepo `packages/tts-gateway/dist/cli.js`.
+ * Resolve gateway CLI path: VSIX `dist/tts-gateway-helper/cli.js`, else monorepo `packages/tts-gateway/dist/cli.js`.
  */
 export const resolveGatewayCli = (extensionPath: string): string => {
-  const bundled = path.join(extensionPath, "dist", "gateway", "cli.js");
+  const bundled = path.join(extensionPath, "dist", "tts-gateway-helper", "cli.js");
   if (fs.existsSync(bundled)) {
     return bundled;
   }
