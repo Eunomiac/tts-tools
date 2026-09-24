@@ -74,7 +74,7 @@ export function activate(context: ExtensionContext) {
 }
 
 export async function deactivate() {
-  console.log(`${extensionName} deactivating — releasing editor port`);
+  console.log(`${extensionName} deactivating — stopping TTS gateway helper`);
   try {
     await activeAdapter?.dispose();
   } catch (e) {

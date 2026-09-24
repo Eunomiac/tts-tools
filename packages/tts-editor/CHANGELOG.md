@@ -7,13 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed
-
-- **Bundled Save & Play + Global Include stubs:** when `.tts/objects/Global.xml` (or `.lua`) is a thin `<Include>` / `require` stub, Bundled Save & Play rebundles Global from that stub so HUD changes still reach TTS. Echo writes what was sent into `.tts/bundled` without replacing the objects stubs.
-
 ### Added
 
-- **Claim / Release TTS Editor Port** commands and status-bar indicator (holding / released / error). Release frees port 39998 for other local apps without restarting the Extension Host; Claim force-takes reclaimable holders on Windows (never Tabletop Simulator). Deactivate closes the listener cleanly.
+- **TTS editor gateway (2.4.0):** a helper process holds port **39998** and fans events out over control port **39997** (NDJSON). The extension registers as `TTSTOOLS` via `@tts-tools/gateway-client`. Claim starts the helper; Release / deactivate stops it so other local tools can bind 39998. Optional `<@TAG@>` print/error routing; proxied `executeLua` with return demux.
+- **Bundled Save & Play + Global Include stubs:** when `.tts/objects/Global.xml` (or `.lua`) is a thin `<Include>` / `require` stub, Bundled Save & Play rebundles Global from that stub so UI changes still reach TTS. Echo writes what was sent into `.tts/bundled` without replacing the objects stubs.
+- **Claim / Release TTS Editor Port** commands and status-bar indicator (gateway / released / error).
 - **Fast Save and Play (default):** after Save and Play, scripts/UI are refreshed from the TTS echo (`scriptStates`) without wiping `.tts` or running `getJSON` for every object.
 - **Save and Play (Full Resync)** command (and bundled variant) plus setting `ttsEditor.resyncAfterSaveAndPlay` for the old thorough `getJSON` rebuild.
 - Incremental **Get Objects** / load sync: apply `scriptStates` for Lua/XML; fetch `getJSON` only when `data.json` is missing; prune vanished GUIDs.
@@ -23,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Rebranded as a community fork for publisher `eunomiac` (`eunomiac.tts-tools`): clearer Marketplace-oriented naming, README fork notice, `LICENSE` / `NOTICE` attribution to Sebastian Stern / upstream Sebaestschjin/tts-tools.
+- Status bar shows **TTS Port: gateway** when the helper is holding 39998.
 
 ## [2.1.3] - 2025-05-13
 

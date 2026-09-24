@@ -1,9 +1,9 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
-const execFileAsync = promisify(execFile);
+import { TTS_EDITOR_PORT } from "../constants";
 
-export const TTS_EDITOR_PORT = 39998;
+const execFileAsync = promisify(execFile);
 
 export type EditorPortListener = {
   readonly pid: number;
@@ -106,7 +106,7 @@ const processNameForPid = async (pid: number): Promise<string> => {
 
 export const listEditorPortListeners = async (port: number = TTS_EDITOR_PORT): Promise<EditorPortListener[]> => {
   if (process.platform !== "win32") {
-    throw new Error("Force-claiming the editor port is only implemented on Windows.");
+    return [];
   }
   let stdout: string;
   try {
@@ -164,6 +164,9 @@ export const reclaimEditorPort = async (
   selfPid: number,
   port: number = TTS_EDITOR_PORT
 ): Promise<ReclaimResult> => {
+  if (process.platform !== "win32") {
+    return { killed: [], skipped: [], leftover: [], failed: [] };
+  }
   const listeners = await listEditorPortListeners(port);
   const skipped = listeners.filter((listener) => !shouldKillListener(listener, selfPid));
   const targets = listeners.filter((listener) => shouldKillListener(listener, selfPid));

@@ -99,6 +99,14 @@ export class Plugin {
 
   setPortStatus = (state: PortHoldState, detail?: string) => {
     switch (state) {
+      case "gateway":
+        this.portStatus.text = "$(plug) TTS Port: gateway";
+        this.portStatus.tooltip = detail
+          ? `${detail}\nClick to Release (stops gateway helper).`
+          : "Gateway helper holding 39998. Click to Release for another local tool.";
+        this.portStatus.backgroundColor = undefined;
+        this.portStatus.command = "ttsEditor.releaseEditorPort";
+        break;
       case "holding":
         this.portStatus.text = "$(plug) TTS Port: 39998";
         this.portStatus.tooltip = detail

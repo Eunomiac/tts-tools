@@ -2,11 +2,13 @@
   "name": "tts-tools",
   "version": "1.0.0",
   "private": true,
-  "description": "Toronto Rising satellite - local TTS Editor plus savefile/xmlbundle libraries",
+  "description": "Local TTS Editor plus savefile/xmlbundle libraries and TTS gateway",
   "scripts": {
     "build:libs": "npm run build --prefix packages/xmlbundle && npm run build --prefix packages/savefile",
-    "build:editor": "npm run compile --prefix packages/tts-editor",
-    "build": "npm run build:libs && npm run build:editor",
+    "build:gateway": "npm run build --prefix packages/tts-gateway",
+    "build:client": "npm run build --prefix packages/gateway-client",
+    "build:editor": "npm run compile --prefix packages/tts-editor && npm run copy-gateway --prefix packages/tts-editor",
+    "build": "npm run build:libs && npm run build:gateway && npm run build:client && npm run build:editor",
     "package": "npm run build && npm install --prefix packages/tts-editor && npm run vscode:package --prefix packages/tts-editor"
   }
 }
