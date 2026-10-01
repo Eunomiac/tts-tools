@@ -6,7 +6,7 @@
   },
   "publisher": "eunomiac",
   "description": "Community fork of Sebastian Stern’s TTS Editor — External Editor API for Tabletop Simulator (scripts, XmlUI bundling, objects). Not affiliated with Berserk Games.",
-  "version": "2.5.3",
+  "version": "2.6.0",
   "engines": {
     "vscode": "^1.96.0"
   },
@@ -178,9 +178,21 @@
           "markdownDescription": "When enabled, every Save and Play rebuilds object data with `getJSON` (slow on large saves). When disabled (default), Save and Play only refreshes scripts/UI from the TTS echo — use **Save and Play (Full Resync)** when you need fresh `data.json`.",
           "type": "boolean",
           "default": false
+        },
+        "ttsEditor.mcp.enabled": {
+          "title": "Expose TTS MCP server to agents",
+          "markdownDescription": "When enabled (default), the extension registers a bundled MCP server named `tts-tools` with Cursor / VS Code so AI agents can run Lua in TTS (`tts_execute_lua`, `tts_send_custom_message`, `tts_status`). It shares the TTS gateway with the extension, so both work at the same time. Requires `node` on PATH.",
+          "type": "boolean",
+          "default": true
         }
       }
     },
+    "mcpServerDefinitionProviders": [
+      {
+        "id": "ttsEditor.mcpServer",
+        "label": "TTS Tools (Tabletop Simulator)"
+      }
+    ],
     "views": {
       "explorer": [
         {
@@ -351,6 +363,7 @@
     "vscode:prepublish": "npm run compile && npm run copy-gateway",
     "compile": "tsc -p ./",
     "copy-gateway": "node ./scripts/copy-gateway.js",
+    "smoke:mcp": "node ./scripts/smoke-mcp.js",
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src --ext ts",

@@ -11,4 +11,10 @@ The extension uses the following settings:
 
 [[messages]]| ttsEditor.enableMessages | boolean | true
 | When set, custom messages sent from TTS are handled. Otherwise, they are ignored (see xref:messages.adoc[]).
+
+| ttsEditor.resyncAfterSaveAndPlay | boolean | false
+| When set, every Save and Play rebuilds object data with `getJSON` (slow on large saves).
+
+[[mcp]]| ttsEditor.mcp.enabled | boolean | true
+| When set, the bundled `tts-tools` MCP server is registered for AI agents (see xref:mcp.adoc[]).
 |===

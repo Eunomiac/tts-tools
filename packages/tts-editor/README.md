@@ -22,6 +22,7 @@ Fork additions (also listed in the changelog):
 - Local multi-client **TTS editor gateway** (helper holds 39998; apps register on control port 39997)
 - `@tts-tools/gateway-client` with **direct↔gateway failover** (bind 39998 when the helper is down; rejoin when it returns)
 - Claim / Release starts or stops the gateway so other local tools can bind 39998 directly
+- Bundled **MCP server** (`tts-tools`) registered automatically in Cursor / VS Code, so AI agents can run Lua in TTS through the gateway while the extension keeps working (`ttsEditor.mcp.enabled` to opt out)
 
 ## Preview
 

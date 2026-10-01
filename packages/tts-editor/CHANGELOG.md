@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Bundled MCP server for AI agents (2.6.0):** The extension registers an MCP server named `tts-tools` with Cursor (`vscode.cursor.mcp.registerServer`) or VS Code 1.101+ (`mcpServerDefinitionProviders`). It joins the TTS gateway as route tag `MCP`, so agents and the extension work at the same time. Tools: `tts_execute_lua`, `tts_send_custom_message`, `tts_status`. Turn off with `ttsEditor.mcp.enabled`. Requires `node` on PATH.
 - **Get Object (2.5.3):** Right-click a row in TTS Objects (or Command Palette) to refresh that one object from the live table via `getJSON`, without a full Get Objects / prune.
 
 - **TTS Objects icons (2.5.1):** Broader `Name` → icon mapping from the TTS Object Name list / `ObjectName` enum (custom model suffixes, RPG figurines, zones, tools, tables, stacks). Unknown types use a generic Codicon (`symbol-misc`). New classes without PNG assets use VS Code ThemeIcons (package, clock, note, bounding-box, …).

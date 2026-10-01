@@ -19,6 +19,7 @@ import showView from "./command/showView";
 import updateObject from "./command/updateObject";
 import updateObjectState from "./command/updateObjectState";
 import { FileHandler } from "./io/files";
+import { registerMcpServer } from "./mcp/register";
 import { Plugin } from "./plugin";
 import { TTSObjectItem, TTSObjectTreeProvider } from "./view/ttsObjectTreeProvider";
 
@@ -78,6 +79,12 @@ export function activate(context: ExtensionContext) {
     registerMacro("locateObject");
 
     window.registerTreeDataProvider("ttsEditor.objectView", viewProvider);
+
+    try {
+      registerMcpServer(context, plugin.info);
+    } catch (error) {
+      plugin.info(`MCP server registration failed: ${error}`);
+    }
 
     console.log("tts-tools-vscode activated");
   } catch (error) {
