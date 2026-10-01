@@ -7,6 +7,7 @@ const configName = {
   includePath: "includePath",
   useMessages: "enableMessages",
   resyncAfterSaveAndPlay: "resyncAfterSaveAndPlay",
+  mcpEnabled: "mcp.enabled",
 };
 
 const includePatterns = () => {
@@ -42,6 +43,8 @@ const messagesEnabled = (): boolean => getConfig(configName.useMessages);
 
 const resyncAfterSaveAndPlay = (): boolean => getConfig(configName.resyncAfterSaveAndPlay) === true;
 
+const mcpEnabled = (): boolean => getConfig(configName.mcpEnabled) !== false;
+
 const getConfig = <T>(name: string) => {
   const config = workspace.getConfiguration(configName.name);
   return config.get(name) as T;
@@ -52,4 +55,5 @@ export default {
   xmlIncludePaths,
   messagesEnabled,
   resyncAfterSaveAndPlay,
+  mcpEnabled,
 };

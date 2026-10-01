@@ -46,7 +46,7 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
  * Extension Host `process.execPath` is Cursor/Electron — do not spawn the helper with it.
  * Prefer a real Node binary on PATH.
  */
-const resolveNodeExecutable = (): string => {
+export const resolveNodeExecutable = (): string => {
   if (process.execPath && /node(\.exe)?$/i.test(process.execPath)) {
     return process.execPath;
   }

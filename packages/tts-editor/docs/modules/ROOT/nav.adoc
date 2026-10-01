@@ -4,6 +4,7 @@
 ** xref:errors.adoc[]
 ** xref:execute.adoc[]
 ** xref:bundling.adoc[]
+** xref:mcp.adoc[]
 * Additional Topics
 ** xref::autocompletion.adoc[]
 * Reference

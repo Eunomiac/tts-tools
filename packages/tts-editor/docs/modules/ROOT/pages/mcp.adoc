@@ -1,0 +1,41 @@
+= MCP Server for AI Agents
+
+The extension ships a small https://modelcontextprotocol.io[Model Context Protocol] server so AI agents in your editor (Cursor, GitHub Copilot agent mode in VS Code, …) can run Lua in the live Tabletop Simulator game.
+
+== How it works
+
+* On activation, the extension registers an MCP server named `tts-tools`.
+** In Cursor this uses `vscode.cursor.mcp.registerServer`.
+** In VS Code 1.101+ this uses the `mcpServerDefinitionProviders` contribution.
+** Editors without either API skip registration; you can still point your MCP config at `<extension>/dist/mcp/server.js` (run with `node`).
+* The server is a separate `node` process. It connects to the local TTS gateway (control port 39997) as route tag `MCP`, the same way the extension and other local tools do.
+Because the gateway owns port 39998, the extension and the MCP server work side by side.
+* If the gateway is not running (for example after *Release TTS Editor Port*), tool calls report that instead of grabbing port 39998.
+The next call reconnects once the gateway is back.
+
+Requirements: TTS running with a game loaded, the TTS Tools extension active (it starts the gateway), and `node` on your PATH.
+
+== Tools
+
+[cols="1m,3"]
+|===
+| Tool | What it does
+
+| tts_execute_lua
+| Runs a Lua snippet (default `Global`, or pass `guid`). Returns `returnValue`, `prints`, `error`, `customMessages`, `finishedBy`, `timedOut`.
+TTS always reports when the chunk finishes; nested tables may not survive as return values, so `return JSON.encode(tbl)` for structured data.
+Set `listenAfterReturnMs` to keep collecting prints from `Wait.time` / coroutine code after the chunk returns. `maxWaitMs` caps the call (default 30 s, max 120 s).
+
+| tts_send_custom_message
+| Sends a JSON object to `onExternalMessage(data)` in the game.
+
+| tts_status
+| Reports whether the server is connected through the gateway.
+|===
+
+NOTE: TTS broadcasts prints to every gateway client, so output from other scripts running at the same moment can show up in `prints`.
+Lua can address a print to one client with the `<@MCP@>` prefix (see the gateway protocol).
+
+== Turning it off
+
+Set xref:settings.adoc#mcp[`ttsEditor.mcp.enabled`] to `false`. The server is unregistered immediately.
