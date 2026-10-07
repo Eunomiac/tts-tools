@@ -1,0 +1,60 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      VSCE_PAT: ${{ secrets.VSCE_PAT }}
+      OVSX_PAT: ${{ secrets.OVSX_PAT }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Tag matches the extension version
+        run: |
+          version=$(node -p "require('./packages/tts-editor/package.json').version")
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "Tag $GITHUB_REF_NAME does not match packages/tts-editor/package.json version $version"
+            exit 1
+          fi
+
+      - name: Build
+        run: |
+          for package in xmlbundle savefile tts-gateway gateway-client; do
+            npm ci --prefix "packages/$package"
+          done
+          npm run build:libs
+          npm run build:gateway
+          npm run build:client
+          npm ci --prefix packages/tts-editor
+          npm run build:editor
+          npm run smoke --prefix packages/tts-editor
+
+      - name: Package VSIX
+        run: npm run vscode:package --prefix packages/tts-editor
+
+      - name: Publish to the VS Code Marketplace
+        if: env.VSCE_PAT != ''
+        working-directory: packages/tts-editor
+        run: npx vsce publish --packagePath ../../dist/tts-tools.vsix
+
+      - name: Publish to Open VSX
+        if: env.OVSX_PAT != ''
+        run: npx --yes ovsx publish dist/tts-tools.vsix
+
+      - name: GitHub release with the VSIX
+        run: |
+          cp dist/tts-tools.vsix "dist/tts-tools-${GITHUB_REF_NAME#v}.vsix"
+          gh release create "$GITHUB_REF_NAME" "dist/tts-tools-${GITHUB_REF_NAME#v}.vsix" \
+            --title "TTS Tools $GITHUB_REF_NAME" \
+            --notes "See the [changelog](https://github.com/Eunomiac/tts-tools/blob/main/packages/tts-editor/CHANGELOG.md)."
