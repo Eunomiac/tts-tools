@@ -1,12 +1,14 @@
 site:
-  title: TTS Tools
+  title: TTS Tools (Community Fork)
+  url: https://eunomiac.github.io/tts-tools
+  start_page: editor::index.adoc
 content:
   sources:
-    - url: https://github.com/Sebaestschjin/tts-tools.git
-      # - url: ..
+    - url: ..
       start_paths:
         - packages/*/docs
       branches: HEAD
+      edit_url: https://github.com/Eunomiac/tts-tools/edit/main/{path}
 urls:
   latest_version_segment: latest
   latest_prerelease_version_segment: next

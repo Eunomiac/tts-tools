@@ -19,7 +19,7 @@ Or open some text directly as an editor in VS Code instead of printing it into t
 
 This allows to write helper template files that can be more easily re-used without adjusting the template itself (e.g. by replacing the GUID of the object your want to with).
 
-In fact, many of the extension features are implemented using macro functions, e.g. https://github.com/Sebaestschjin/tts-tools/blob/main/packages/tts-editor/macro/locateObject.lua[locating an object] or https://github.com/Sebaestschjin/tts-tools/blob/main/packages/tts-editor/macro/getRuntimeUi.lua[getting the runtime UI].
+In fact, many of the extension features are implemented using macro functions, e.g. https://github.com/Eunomiac/tts-tools/blob/main/packages/tts-editor/macro/locateObject.lua[locating an object] or https://github.com/Eunomiac/tts-tools/blob/main/packages/tts-editor/macro/getRuntimeUi.lua[getting the runtime UI].
 
 More macros will also be added in the future.
 If you have an idea of a macro that might benefit you, let me know.
