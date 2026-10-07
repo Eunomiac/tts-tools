@@ -28,7 +28,7 @@ Fork additions (also listed in the changelog):
 
 ## Prefer the original behavior?
 
-Every behavior change above has a switch in **Settings → Extensions → TTS Editor**.
+Every behavior change above has a switch in the settings group **Compatibility with the original extension** (search the settings for `ttsEditor`).
 Turn on **Compatibility: Behave Like Original** to get the original extension's behavior back in one click (direct connection, full re-read on every load, wipe `.tts` on load, Update Object from `data.json`, no MCP server) while keeping the bug fixes.
 
 ## Preview

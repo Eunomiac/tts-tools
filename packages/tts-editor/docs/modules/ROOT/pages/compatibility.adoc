@@ -5,7 +5,7 @@ This page lists everything that behaves differently and how to switch it back.
 
 == Switch everything back at once
 
-Turn on *Behave Like Original* (`ttsEditor.compatibility.behaveLikeOriginal`) under *TTS Editor › Compatibility with the original extension* in the settings editor.
+Turn on *Behave Like Original* (`ttsEditor.compatibility.behaveLikeOriginal`) in the settings group *Compatibility with the original extension*. Searching the settings for `behaveLikeOriginal` finds it.
 It overrides the settings in the table below and turns off the MCP server, while keeping the bug fixes listed further down.
 
 == What is different
