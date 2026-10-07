@@ -59,6 +59,16 @@ describe("bundle", () => {
       expect(result).to.be.equal(expected);
     });
 
+    it("should resolve Includes whose case differs from the file name", () => {
+      const input = '<Include src="WITHINCLUDE" />';
+      const nested = borderedFile("main", "main");
+      const expected = bordered("WITHINCLUDE", `${nested}\n`);
+
+      const result = bundle(input, includeDir);
+
+      expect(result).to.be.equal(expected);
+    });
+
     it("should resolve transitive Includes in nested directories", () => {
       const input = readInclude("withNested");
       const expected = readResolved("withNested");

@@ -1,4 +1,5 @@
-import { existsSync, readFileSync } from "fs";
+import { existsSync, readdirSync, readFileSync, realpathSync, statSync } from "fs";
+import { dirname } from "path";
 
 const INCLUDE_REGEX = /^([\t ]*)<Include src=(["'])(.+)\2\s*\/>/im;
 const BORDER_REGEX = /([ \t]*)<!-- include (.*?) -->\r?\n(.*?)<!-- include \2 -->/gs;
@@ -97,44 +98,54 @@ const resolve = (xmlUi: string, rootPaths: string[], alreadyResolved: string[], 
   return resolved;
 };
 
-const getFilePath = (fileName: string): { subPath: string; fileName: string } => {
-  fileName = fileName.toLowerCase();
-  if (!fileName.endsWith(".xml")) {
-    fileName += ".xml";
-  }
-
-  let filePath: any = fileName.match(/(.+)\//);
-  if (filePath) {
-    filePath = "/" + filePath[1];
-  } else {
-    filePath = "";
-  }
-
-  return { subPath: filePath, fileName: fileName };
-};
+const withXmlExtension = (fileName: string): string => (/\.xml$/i.test(fileName) ? fileName : `${fileName}.xml`);
 
 const readInclude = (file: string, rootPaths: string[], alreadyResolved: string[]) => {
-  const { subPath, fileName } = getFilePath(file);
   const border = `<!-- include ${file} -->`;
-  const [filePath, root] = findFromRoots(fileName, rootPaths);
+  const filePath = findFromRoots(withXmlExtension(file), rootPaths);
+  const canonicalPath = realpathSync.native(filePath);
 
-  if (alreadyResolved.includes(filePath)) {
+  if (alreadyResolved.includes(canonicalPath)) {
     throw new Error(`Cycle detected! File "${filePath}" was already included before.`);
   }
 
-  alreadyResolved.push(filePath);
+  alreadyResolved.push(canonicalPath);
 
   const includeContent = readFileSync(filePath, { encoding: "utf-8" });
-  const resolved = resolve(includeContent, [root + subPath], alreadyResolved, false);
+  const resolved = resolve(includeContent, [dirname(filePath)], alreadyResolved, false);
 
   return `${border}\n${resolved}\n${border}`;
 };
 
-const findFromRoots = (file: string, rootPaths: string[]): [string, string] => {
+/**
+ * Include names are case-insensitive, as in TTS. The name as written wins; otherwise each path segment is matched
+ * ignoring case, so includes written on Windows also resolve on case-sensitive file systems.
+ */
+const findIgnoringCase = (root: string, relativePath: string): string | undefined => {
+  let current = root;
+  for (const segment of relativePath.split("/")) {
+    const exact = `${current}/${segment}`;
+    if (existsSync(exact)) {
+      current = exact;
+      continue;
+    }
+    if (!existsSync(current) || !statSync(current).isDirectory()) {
+      return undefined;
+    }
+    const match = readdirSync(current).find((entry) => entry.toLowerCase() === segment.toLowerCase());
+    if (!match) {
+      return undefined;
+    }
+    current = `${current}/${match}`;
+  }
+  return current;
+};
+
+const findFromRoots = (file: string, rootPaths: string[]): string => {
   for (const root of rootPaths) {
-    const fileName = `${root}/${file}`;
-    if (existsSync(fileName)) {
-      return [fileName, root];
+    const filePath = findIgnoringCase(root, file);
+    if (filePath) {
+      return filePath;
     }
   }
 

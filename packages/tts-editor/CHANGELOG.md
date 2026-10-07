@@ -40,6 +40,7 @@ Every behavior change can be switched back in the settings group **Compatibility
 - A Lua request that TTS never answers fails after two minutes with an error.
 - **Update Object State** works on macOS and Linux, and script states containing `]]` no longer break it.
 - If an object's script file is missing, Save and Play sends its last bundled copy instead of clearing the script in TTS.
+- XML `<Include>` files whose names contain capital letters are found on Linux and other case-sensitive file systems. Include names stay case-insensitive on every system.
 
 ## [2.1.3] - 2025-05-13
 
