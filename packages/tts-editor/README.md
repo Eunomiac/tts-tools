@@ -47,11 +47,11 @@ Please prefer filing bugs that belong to unchanged upstream behavior against the
 
 ## Attributions (icons)
 
-Icons taken from flaticon.com created by:
+The object-type icons in the TTS Objects view are from [Flaticon](https://www.flaticon.com/), made by:
 
-- <a href="https://www.flaticon.com/authors/amazona-adorada">Amazona Adorada</a>
-- <a href="https://www.flaticon.com/authors/freepik">Freepik</a>
-- <a href="https://www.flaticon.com/authors/good-ware">Good Ware</a>
-- <a href="https://www.flaticon.com/authors/kiranshastry">Kiranshastry</a>
-- <a href="https://www.flaticon.com/authors/mike-zuidgeest">Mike Zuidgeest</a>
-- <a href="https://www.flaticon.com/authors/riajulislam">riajulislam</a>
+- [Amazona Adorada](https://www.flaticon.com/authors/amazona-adorada) from [www.flaticon.com](https://www.flaticon.com/)
+- [Freepik](https://www.flaticon.com/authors/freepik) from [www.flaticon.com](https://www.flaticon.com/)
+- [Good Ware](https://www.flaticon.com/authors/good-ware) from [www.flaticon.com](https://www.flaticon.com/)
+- [Kiranshastry](https://www.flaticon.com/authors/kiranshastry) from [www.flaticon.com](https://www.flaticon.com/)
+- [Mike Zuidgeest](https://www.flaticon.com/authors/mike-zuidgeest) from [www.flaticon.com](https://www.flaticon.com/)
+- [riajulislam](https://www.flaticon.com/authors/riajulislam) from [www.flaticon.com](https://www.flaticon.com/)
