@@ -460,10 +460,9 @@
     "compile": "tsc -p ./",
     "copy-gateway": "node ./scripts/copy-gateway.js",
     "smoke:mcp": "node ./scripts/smoke-mcp.js",
+    "smoke": "node ./scripts/smoke-object-type.js && node ./scripts/smoke-units.js && node ./scripts/smoke-mcp.js",
     "watch": "tsc -watch -p ./",
-    "pretest": "npm run compile && npm run lint",
-    "lint": "eslint src --ext ts",
-    "test": "node ./out/test/runTest.js"
+    "lint": "eslint src --ext ts"
   },
   "dependencies": {
     "@tts-tools/gateway-client": "file:../gateway-client",
@@ -477,10 +476,8 @@
     "@types/node": "^22.16.5",
     "@types/vscode": "^1.96.0",
     "@typescript-to-lua/language-extensions": "^1.19.0",
-    "@vscode/test-electron": "^2.3.4",
     "@vscode/vsce": "^4.0.0",
     "eslint": "^9.35.0",
-    "glob": "^11.0.3",
     "typescript": "^5.9.2",
     "typescript-eslint": "^8.42.0"
   }

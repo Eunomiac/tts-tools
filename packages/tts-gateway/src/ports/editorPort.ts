@@ -34,9 +34,9 @@ const processNameForPid = async (pid: number): Promise<string> => {
       encoding: "utf8",
     });
     const imageName = stdout.match(/^"([^"]+)"/m)?.[1] ?? "";
-    return imageName.replace(/\.exe$/i, "") || `pid ${pid}`;
+    return imageName.replace(/\.exe$/i, "") || "unknown program";
   } catch {
-    return `pid ${pid}`;
+    return "unknown program";
   }
 };
 
