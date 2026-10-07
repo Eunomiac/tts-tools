@@ -6,12 +6,12 @@ on:
 
 permissions:
   contents: write
+  id-token: write
 
 jobs:
   publish:
     runs-on: ubuntu-latest
     env:
-      VSCE_PAT: ${{ secrets.VSCE_PAT }}
       OVSX_PAT: ${{ secrets.OVSX_PAT }}
       GH_TOKEN: ${{ github.token }}
     steps:
@@ -43,10 +43,10 @@ jobs:
       - name: Package VSIX
         run: npm run vscode:package --prefix packages/tts-editor
 
-      - name: Publish to the VS Code Marketplace
-        if: env.VSCE_PAT != ''
+      - name: Publish to the VS Code Marketplace (trusted publishing, no token)
+        if: vars.PUBLISH_TO_MARKETPLACE == 'true'
         working-directory: packages/tts-editor
-        run: npx vsce publish --packagePath ../../dist/tts-tools.vsix
+        run: npx vsce publish --oidc --packagePath ../../dist/tts-tools.vsix
 
       - name: Publish to Open VSX
         if: env.OVSX_PAT != ''
