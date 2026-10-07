@@ -1,10 +1,10 @@
-import { IncomingJsonObject, OutgoingJsonObject } from "@matanlurey/tts-editor";
 import { TTSObject as SaveFileObject, unbundleObject } from "@tts-tools/savefile";
 import { FileType, Uri, window, workspace } from "vscode";
 
 import { unbundleRootModule, unbundleXml } from "./bundle";
 import { getOutputFileUri, getOutputPath, hasOutputFile, readOutputFile, writeOutputFile } from "./files";
 import { Plugin } from "../plugin";
+import { IncomingJsonObject, OutgoingJsonObject } from "../tts/externalEditorApi";
 
 /**
  * - `echo`: our own Save & Play reload — only refresh what we just sent.

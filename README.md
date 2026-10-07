@@ -1,33 +1,34 @@
-# TTS Tools
+# TTS Tools (Community Fork)
 
-Local / community fork of [Sebaestschjin/tts-tools](https://github.com/Sebaestschjin/tts-tools) (Sebastian Stern), used as the source of truth for Toronto Rising’s Cursor TTS extension and prepared for optional Marketplace publication under publisher **`eunomiac`**.
+A community-maintained fork of [Sebaestschjin/tts-tools](https://github.com/Sebaestschjin/tts-tools) by Sebastian Stern: a VS Code extension and supporting libraries for scripting [Tabletop Simulator](https://www.tabletopsimulator.com/) mods through its External Editor API.
 
-**Credit:** Original TTS Editor and related packages by Sebastian Stern. See [`packages/tts-editor/NOTICE`](packages/tts-editor/NOTICE) and [`packages/tts-editor/LICENSE`](packages/tts-editor/LICENSE).
+**Credit:** the original TTS Editor extension and the `savefile` / `xmlbundle` libraries are by Sebastian Stern. See [`packages/tts-editor/NOTICE`](packages/tts-editor/NOTICE) and [`packages/tts-editor/LICENSE`](packages/tts-editor/LICENSE).
 
 ## Layout
 
 | Path | Role |
 | --- | --- |
-| [packages/tts-editor](packages/tts-editor/) | The Cursor / VS Code **extension** (ships as one VSIX) |
-| [packages/savefile](packages/savefile/) | Local library: split / join TTS saves (bundled into the extension) |
-| [packages/xmlbundle](packages/xmlbundle/) | Local library: XmlUI `<Include>` bundling (bundled into the extension) |
+| [packages/tts-editor](packages/tts-editor/) | The VS Code **extension** (ships as one VSIX) |
+| [packages/tts-gateway](packages/tts-gateway/) | Small helper process that holds the TTS editor port and shares it between several local tools (bundled into the extension) |
+| [packages/gateway-client](packages/gateway-client/) | Node client for the gateway, with direct-connection fallback (bundled into the extension; usable by other tools) |
+| [packages/savefile](packages/savefile/) | Library: split / join TTS saves (bundled into the extension) |
+| [packages/xmlbundle](packages/xmlbundle/) | Library: XmlUI `<Include>` bundling (bundled into the extension) |
 
-`savefile` and `xmlbundle` stay as separate packages so you can also use them from Node outside Cursor. They are **not** separate extensions — packaging the editor pulls them in via `file:` dependencies into a single `dist/tts-tools.vsix`.
+The libraries are separate packages so they can also be used from Node on their own. Packaging the extension pulls them into a single `dist/tts-tools.vsix`.
 
-Extension id: `eunomiac.tts-tools` (fork identity; uninstall the old Marketplace `sebaestschjin.tts-editor` if both would conflict).
+Extension id: `eunomiac.tts-tools`. If you also have the original `sebaestschjin.tts-editor` installed, disable one of them.
 
 ## Build / package
 
-From the `tts-tools` root (after a one-time `npm install` in each of `packages/xmlbundle`, `packages/savefile`, and `packages/tts-editor`):
+From the repository root, after a one-time `npm install` in each package folder:
 
 ```sh
 npm run package
 ```
 
-That builds the libraries, refreshes the editor’s local copies of those libraries, compiles the editor, and writes **`dist/tts-tools.vsix`**.
+That builds the libraries and the gateway, compiles the extension, and writes **`dist/tts-tools.vsix`**.
+Install it with **Extensions: Install from VSIX…** in VS Code (or `code --install-extension dist/tts-tools.vsix`).
 
-From the Toronto Rising workspace, use the VS Code / Cursor tasks:
+## License
 
-- **BUILD TTS Tools Extension (VSIX)**
-- **Update TTS Extension from VSIX**
-- **BUILD + Install TTS Tools Extension** (both, in order)
+The extension is MIT licensed (original work by Sebastian Stern, fork changes by Eunomiac). `savefile` and `xmlbundle` are CC0-1.0. The gateway packages are MIT. The repository root `LICENSE` (CC0-1.0) is inherited from upstream and covers files that have no license of their own.

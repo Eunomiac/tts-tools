@@ -18,11 +18,18 @@ Extension support for the [Tabletop Simulator External Editor API](https://api.t
 
 Fork additions (also listed in the changelog):
 
-- Faster Save & Play sync (incremental disk refresh; optional Full Resync)
-- Local multi-client **TTS editor gateway** (helper holds 39998; apps register on control port 39997)
-- `@tts-tools/gateway-client` with **direct↔gateway failover** (bind 39998 when the helper is down; rejoin when it returns)
-- Claim / Release starts or stops the gateway so other local tools can bind 39998 directly
-- Bundled **MCP server** (`tts-tools`) registered automatically in Cursor / VS Code, so AI agents can run Lua in TTS through the gateway while the extension keeps working (`ttsEditor.mcp.enabled` to opt out)
+- **Faster loads and Save & Play** on large saves: scripts are refreshed from TTS's load message instead of re-reading every object (optional full resync)
+- **Update Object keeps changes made in TTS**: it reads the object from the running game before respawning it
+- **Cleans up after other mods**: files for objects that are not in the loaded game are removed, so one folder can serve several mods
+- **Shared TTS connection**: a small helper holds the TTS editor port so other local tools can use it at the same time (no Node.js install needed)
+- **MCP server for AI agents** (`tts-tools`), registered automatically in VS Code 1.101+ and Cursor, so agents can run Lua in TTS while the extension keeps working
+- **Claim / Release** in the status bar to hand the TTS port to another tool without restarting the editor
+- Lua return values are matched to the request that asked for them, so overlapping requests no longer mix up results
+
+## Prefer the original behavior?
+
+Every behavior change above has a switch in **Settings → Extensions → TTS Editor**.
+Turn on **Compatibility: Behave Like Original** to get the original extension's behavior back in one click (direct connection, full re-read on every load, wipe `.tts` on load, Update Object from `data.json`, no MCP server) while keeping the bug fixes.
 
 ## Preview
 

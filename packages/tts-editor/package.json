@@ -458,7 +458,6 @@
     "test": "node ./out/test/runTest.js"
   },
   "dependencies": {
-    "@matanlurey/tts-editor": "github:sebaestschjin/tts-editor#dist",
     "@tts-tools/gateway-client": "file:../gateway-client",
     "@tts-tools/savefile": "file:../savefile",
     "@tts-tools/xmlbundle": "file:../xmlbundle",

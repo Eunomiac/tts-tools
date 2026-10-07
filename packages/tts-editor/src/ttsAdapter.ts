@@ -1,12 +1,3 @@
-import {
-  CustomMessage,
-  ErrorMessage,
-  LoadingANewGame,
-  ObjectCreated,
-  OutgoingJsonObject,
-  PrintDebugMessage,
-  PushingNewObject,
-} from "@matanlurey/tts-editor";
 import { connectGateway, type GatewaySession } from "@tts-tools/gateway-client";
 import { TTSObject as SaveFileObject, bundleObject, unbundleObject } from "@tts-tools/savefile";
 import { Range, Uri, window, workspace } from "vscode";
@@ -44,6 +35,15 @@ import {
 } from "./message";
 import { LoadedObject } from "./model/objectData";
 import { Plugin } from "./plugin";
+import {
+  CustomMessage,
+  ErrorMessage,
+  LoadingANewGame,
+  ObjectCreated,
+  OutgoingJsonObject,
+  PrintDebugMessage,
+  PushingNewObject,
+} from "./tts/externalEditorApi";
 
 const polyFills = ["object", "write"];
 const ROUTE_TAG = "TTSTOOLS";
