@@ -26,8 +26,24 @@ From the repository root, after a one-time `npm install` in each package folder:
 npm run package
 ```
 
-That builds the libraries and the gateway, compiles the extension, and writes **`dist/tts-tools.vsix`**.
+That builds the libraries and the gateway, type-checks the extension, bundles it with esbuild into `packages/tts-editor/dist/`, and writes **`dist/tts-tools.vsix`**.
 Install it with **Extensions: Install from VSIX…** in VS Code (or `code --install-extension dist/tts-tools.vsix`).
+
+The extension copies the sibling packages into its `node_modules` when installed (`install-links=true`), so after changing a library, rerun `npm run package` (which reinstalls the extension's dependencies) rather than only `npm run build`.
+
+## Checks
+
+```sh
+npm test --prefix packages/xmlbundle
+npm test --prefix packages/savefile
+npm run lint --prefix packages/tts-editor
+npm run smoke --prefix packages/tts-editor
+```
+
+The smoke checks include a gateway test against a fake TTS. If TTS is running with a game loaded, the MCP smoke check also runs a few harmless Lua snippets in it (prints and one deliberate error).
+CI runs all of these on Windows, Linux and macOS. The connection to a real TTS is tested on Windows only.
+
+Releases are published by pushing a version tag; see [`.dev/release-audit/publishing.md`](.dev/release-audit/publishing.md).
 
 ## License
 
