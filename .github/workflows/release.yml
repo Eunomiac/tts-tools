@@ -3,18 +3,26 @@ name: Release
 on:
   push:
     tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing version tag to publish again, e.g. v3.0.1
+        required: true
 
 permissions:
   contents: write
+  id-token: write
 
 jobs:
   publish:
     runs-on: ubuntu-latest
     env:
-      OVSX_PAT: ${{ secrets.OVSX_PAT }}
       GH_TOKEN: ${{ github.token }}
+      TAG: ${{ inputs.tag || github.ref_name }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -22,8 +30,8 @@ jobs:
       - name: Tag matches the extension version
         run: |
           version=$(node -p "require('./packages/tts-editor/package.json').version")
-          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
-            echo "Tag $GITHUB_REF_NAME does not match packages/tts-editor/package.json version $version"
+          if [ "v$version" != "$TAG" ]; then
+            echo "Tag $TAG does not match packages/tts-editor/package.json version $version"
             exit 1
           fi
 
@@ -42,13 +50,16 @@ jobs:
       - name: Package VSIX
         run: npm run vscode:package --prefix packages/tts-editor
 
-      - name: Publish to Open VSX
-        if: env.OVSX_PAT != ''
-        run: npx --yes ovsx publish dist/tts-tools.vsix
+      - name: Publish to Open VSX (trusted publisher, no token)
+        run: npx --yes ovsx@^1.2.0 publish dist/tts-tools.vsix --skip-duplicate
 
       - name: GitHub release with the VSIX
         run: |
-          cp dist/tts-tools.vsix "dist/tts-tools-${GITHUB_REF_NAME#v}.vsix"
-          gh release create "$GITHUB_REF_NAME" "dist/tts-tools-${GITHUB_REF_NAME#v}.vsix" \
-            --title "TTS Tools $GITHUB_REF_NAME" \
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            echo "Release $TAG already exists"
+            exit 0
+          fi
+          cp dist/tts-tools.vsix "dist/tts-tools-${TAG#v}.vsix"
+          gh release create "$TAG" "dist/tts-tools-${TAG#v}.vsix" \
+            --title "TTS Tools $TAG" \
             --notes "See the [changelog](https://github.com/Eunomiac/tts-tools/blob/main/packages/tts-editor/CHANGELOG.md)."
