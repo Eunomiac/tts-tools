@@ -1,3 +1,5 @@
+<img src="packages/tts-editor/media/icon.png" alt="TTS Tools logo" width="128" align="right"/>
+
 # TTS Tools (Community Fork)
 
 A community-maintained fork of [Sebaestschjin/tts-tools](https://github.com/Sebaestschjin/tts-tools) by Sebastian Stern: a VS Code extension and supporting libraries for scripting [Tabletop Simulator](https://www.tabletopsimulator.com/) mods through its External Editor API.

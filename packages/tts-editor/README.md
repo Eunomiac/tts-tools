@@ -1,3 +1,5 @@
+<img src="https://raw.githubusercontent.com/Eunomiac/tts-tools/main/packages/tts-editor/media/icon.png" alt="TTS Tools logo" width="128" align="right"/>
+
 # TTS Tools (Community Fork)
 
 Edit [Tabletop Simulator](https://www.tabletopsimulator.com/) scripts and XML UI in VS Code or Cursor, using TTS's [External Editor API](https://api.tabletopsimulator.com/externaleditorapi/).
