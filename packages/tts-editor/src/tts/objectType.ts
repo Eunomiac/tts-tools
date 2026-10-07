@@ -33,6 +33,21 @@ export enum ObjectType {
   zone = "zone",
 }
 
+/**
+ * `TypeIndex` values of custom models and assetbundles. Mirrors the ambient `const enum ModelType`,
+ * which the esbuild bundle cannot inline because it compiles each file on its own.
+ */
+const TypeIndex = {
+  Generic: 0,
+  Figurine: 1,
+  Dice: 2,
+  Coin: 3,
+  Board: 4,
+  Chip: 5,
+  Bag: 6,
+  Infinite: 7,
+} as const;
+
 export const getObjectType = (data: ObjectData): ObjectType => {
   const name = data.Name;
 
@@ -43,7 +58,7 @@ export const getObjectType = (data: ObjectData): ObjectType => {
         return fromSuffix;
       }
     }
-    const modelType = (data as ModelData).CustomMesh?.TypeIndex ?? ModelType.Generic;
+    const modelType = (data as ModelData).CustomMesh?.TypeIndex ?? TypeIndex.Generic;
     return mapModelType(modelType);
   }
 
@@ -55,7 +70,7 @@ export const getObjectType = (data: ObjectData): ObjectType => {
       }
     }
     const modelType =
-      (data as AssetBundleData).CustomAssetbundle?.TypeIndex ?? ModelType.Generic;
+      (data as AssetBundleData).CustomAssetbundle?.TypeIndex ?? TypeIndex.Generic;
     return mapModelType(modelType);
   }
 
@@ -234,21 +249,21 @@ const typeFromCustomSuffix = (suffix: string): ObjectType | undefined => {
   }
 };
 
-const mapModelType = (modelType: ModelType): ObjectType => {
+const mapModelType = (modelType: number): ObjectType => {
   switch (modelType) {
-    case ModelType.Bag:
-    case ModelType.Infinite:
+    case TypeIndex.Bag:
+    case TypeIndex.Infinite:
       return ObjectType.bag;
-    case ModelType.Dice:
+    case TypeIndex.Dice:
       return ObjectType.die;
-    case ModelType.Figurine:
+    case TypeIndex.Figurine:
       return ObjectType.figure;
-    case ModelType.Board:
+    case TypeIndex.Board:
       return ObjectType.board;
-    case ModelType.Coin:
-    case ModelType.Chip:
+    case TypeIndex.Coin:
+    case TypeIndex.Chip:
       return ObjectType.token;
-    case ModelType.Generic:
+    case TypeIndex.Generic:
     default:
       return ObjectType.bundle;
   }
