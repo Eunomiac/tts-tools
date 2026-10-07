@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `.ttslua` files open as Lua (syntax highlighting and Lua tooling) without a `files.associations` setting.
+
 ## [2.7.0] - 2026-10-07
 
 First public preview of the community fork (`eunomiac.tts-tools`). Includes every change since the original extension's 2.1.3; version numbers in parentheses mark when each change landed in the fork.

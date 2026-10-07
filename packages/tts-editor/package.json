@@ -31,6 +31,14 @@
   ],
   "main": "./dist/extension.js",
   "contributes": {
+    "languages": [
+      {
+        "id": "lua",
+        "extensions": [
+          ".ttslua"
+        ]
+      }
+    ],
     "commands": [
       {
         "command": "ttsEditor.getObjects",
