@@ -50,8 +50,15 @@ jobs:
       - name: Package VSIX
         run: npm run vscode:package --prefix packages/tts-editor
 
-      - name: Publish to Open VSX (trusted publisher, no token)
-        run: npx --yes ovsx@^1.2.0 publish dist/tts-tools.vsix --skip-duplicate
+      - name: Publish to Open VSX
+        env:
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
+        run: |
+          if [ -n "$OVSX_PAT" ]; then
+            npx --yes ovsx@^1.2.0 publish dist/tts-tools.vsix --skip-duplicate -p "$OVSX_PAT"
+          else
+            npx --yes ovsx@^1.2.0 publish dist/tts-tools.vsix --skip-duplicate
+          fi
 
       - name: GitHub release with the VSIX
         run: |
