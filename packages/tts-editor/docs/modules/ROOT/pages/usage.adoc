@@ -29,7 +29,7 @@ It does **not** wipe the output folder or re-download every object with `getJSON
 Use **Save and Play (Full Resync)** (or enable setting `ttsEditor.resyncAfterSaveAndPlay`) when you need fresh object `data.json` files.
 **Get Objects** likewise syncs scripts from `scriptStates` and only calls `getJSON` for objects that are still missing a data file.
 When a game loads, files for objects that are not in that game are deleted; see xref:settings.adoc#clean-up[`ttsEditor.sync.cleanUpOnLoad`].
-To get the original extension's slower, re-read-everything behavior back, see xref:settings.adoc#original[Compatibility].
+To get the original extension's slower, re-read-everything behavior back, see xref:compatibility.adoc[].
 
 Only one process can listen on TTS editor port **39998**.
 By default the extension starts a small **gateway helper** that holds 39998 and lets multiple local apps register on control port **39997**.

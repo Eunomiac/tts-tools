@@ -1,0 +1,59 @@
+= Differences from the original extension
+
+TTS Tools (Community Fork) is based on https://github.com/Sebaestschjin/tts-tools[TTS Editor 2.1.3 by Sebastian Stern].
+This page lists everything that behaves differently and how to switch it back.
+
+== Switch everything back at once
+
+Turn on *Behave Like Original* (`ttsEditor.compatibility.behaveLikeOriginal`) under *TTS Editor › Compatibility with the original extension* in the settings editor.
+It overrides the settings in the table below and turns off the MCP server, while keeping the bug fixes listed further down.
+
+== What is different
+
+[cols="2,3,3,2"]
+|===
+| Area | Original | This fork (default) | Switch back with
+
+| Connection
+| The extension listens on the TTS editor port itself.
+| A small helper process holds the port and shares it with other local tools. If it cannot start, the extension connects directly and says so once.
+| `connection.mode`: `direct`
+
+| Loading a game
+| Deletes the `.tts` folders and asks TTS for every scripted object's full data, one at a time.
+| Writes scripts and UI from the load message and asks for full data only when an object has no `data.json` yet. Much faster on large saves.
+| `sync.mode`: `classic`
+
+| After Save and Play
+| Runs the full load again.
+| Refreshes only what was just sent.
+| `sync.mode`: `classic`, or `resyncAfterSaveAndPlay`, or the *Save and Play (Full Resync)* commands
+
+| Cleaning up on load
+| Deletes everything the extension wrote.
+| Deletes files only for objects that are not in the loaded game (removed or renamed objects, or a different mod in the same folder).
+| `sync.cleanUpOnLoad`: `everything`
+
+| Update Object
+| Respawns the object from its `data.json`.
+| Reads the object from the running game first, so moves and other changes made in TTS are kept.
+| `updateObject.source`: `dataFile`
+
+| AI agents
+| —
+| Offers an MCP server named `tts-tools` (see xref:mcp.adoc[]).
+| `mcp.enabled`: off
+|===
+
+These additions only take effect when you use them: the *Get Object*, *Claim / Release TTS Editor Port*, and *Save and Play (Full Resync)* commands; the opt-in `sync.preserveGlobalStubs` setting; the *TTS Port* status bar item (hide it from the status bar's right-click menu); more object icons in the tree; and `.ttslua` files opening as Lua.
+
+The editor port is closed when the extension is deactivated. The original left it open until the editor's extension host exited.
+
+[[fixes]]
+== Bug fixes that stay on
+
+* Lua return values are matched to the request that asked for them, so one object's script can no longer end up in another object's file.
+* A load that arrives while another is still being processed waits for it instead of mixing results.
+* A Lua request that TTS never answers fails after two minutes with an error.
+* *Update Object State* works on macOS and Linux, and script states containing `]]` no longer break it.
+* If an object's script file is missing, Save and Play sends its last bundled copy instead of clearing the script in TTS.

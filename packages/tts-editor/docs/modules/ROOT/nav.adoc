@@ -10,4 +10,5 @@
 * Reference
 ** xref:commands.adoc[]
 ** xref:settings.adoc[]
+** xref:compatibility.adoc[]
 ** xref:messages.adoc[]

@@ -1,6 +1,7 @@
 = Settings
 
-The settings appear in three groups in the VS Code settings editor: *TTS Editor*, *Connection and AI Agents*, and *Compatibility*.
+The settings appear in two groups in the VS Code settings editor: *TTS Editor* and *Compatibility with the original extension*.
+xref:compatibility.adoc[] explains every difference from the original extension and how to switch it back.
 
 == TTS Editor
 
@@ -14,14 +15,41 @@ The settings appear in three groups in the VS Code settings editor: *TTS Editor*
 [[messages]]| ttsEditor.enableMessages | boolean | true
 | When set, custom messages sent from TTS are handled. Otherwise, they are ignored (see xref:messages.adoc[]).
 
+[[resync]]| ttsEditor.resyncAfterSaveAndPlay | boolean | false
+| With `fast` sync, also rebuild every `data.json` after each Save and Play.
+The *Save and Play (Full Resync)* commands do this once.
+
+[[global-stubs]]| ttsEditor.sync.preserveGlobalStubs | boolean | false
+| Keep a hand-written `objects/Global.lua` made only of `require(...)` lines, or an `objects/Global.xml` made only of `<Include src=...>` tags, instead of replacing it with the copy from TTS on load.
+Save and Play always rebundles these stubs, even with *Save and Play (Bundled)*.
+
+[[mcp]]| ttsEditor.mcp.enabled | boolean | true
+| Offer the built-in `tts-tools` MCP server to AI agents (see xref:mcp.adoc[]). Needs `gateway` connection mode.
+|===
+
+== Compatibility with the original extension
+
+Each of these settings has one value that matches the original extension.
+*Behave Like Original* switches all of them (and MCP) at once.
+
+[cols="1m,1m,1m,2"]
+|===
+| Name | Type | Default | Usage
+
+[[original]]| ttsEditor.compatibility.behaveLikeOriginal | boolean | false
+| Behave like the original TTS Editor extension while keeping this fork's bug fixes.
+While enabled it overrides: connection mode `direct`, sync mode `classic`, clean up on load `everything`, Update Object source `dataFile`, preserve Global stubs off, MCP off.
+Bug fixes that stay active are listed in xref:compatibility.adoc#fixes[].
+
+[[connection]]| ttsEditor.connection.mode | gateway / direct | gateway
+| `gateway` starts a small helper process that holds the TTS editor port and shares it with other local tools, such as the MCP server.
+If the helper cannot start, the extension connects directly instead and says so once.
+`direct` listens on the TTS editor port inside the extension, like the original extension; other local tools cannot connect at the same time.
+
 [[sync-mode]]| ttsEditor.sync.mode | fast / classic | fast
 | How object files are refreshed when a game loads.
 `fast` writes scripts and UI from the load message and asks TTS for an object's full data only when its `data.json` is missing.
 `classic` asks TTS for every object's full data on every load, including after Save and Play, like the original extension (slow on large saves).
-
-| ttsEditor.resyncAfterSaveAndPlay | boolean | false
-| With `fast` sync, also rebuild every `data.json` after each Save and Play.
-The *Save and Play (Full Resync)* commands do this once.
 
 [[clean-up]]| ttsEditor.sync.cleanUpOnLoad | removedObjects / everything / nothing | removedObjects
 | Which files under `.tts` are deleted when a game loads.
@@ -33,35 +61,4 @@ The *Save and Play (Full Resync)* commands do this once.
 | Where *Update Object* takes everything except the script, UI and state from.
 `liveTable` reads the object from the running game first, so changes made in TTS (position, contents, …) are kept.
 `dataFile` uses the object's `data.json`, like the original extension; choose it if you edit `data.json` by hand.
-
-[[global-stubs]]| ttsEditor.sync.preserveGlobalStubs | boolean | false
-| Keep a hand-written `objects/Global.lua` made only of `require(...)` lines, or an `objects/Global.xml` made only of `<Include src=...>` tags, instead of replacing it with the copy from TTS on load.
-Save and Play always rebundles these stubs, even with *Save and Play (Bundled)*.
-|===
-
-== Connection and AI Agents
-
-[cols="1m,1m,1m,2"]
-|===
-| Name | Type | Default | Usage
-
-[[connection]]| ttsEditor.connection.mode | gateway / direct | gateway
-| `gateway` starts a small helper process that holds the TTS editor port and shares it with other local tools, such as the MCP server.
-If the helper cannot start, the extension connects directly instead and says so once.
-`direct` listens on the TTS editor port inside the extension, like the original extension; other local tools cannot connect at the same time.
-
-[[mcp]]| ttsEditor.mcp.enabled | boolean | true
-| Offer the built-in `tts-tools` MCP server to AI agents (see xref:mcp.adoc[]). Needs `gateway` connection mode.
-|===
-
-== Compatibility
-
-[cols="1m,1m,1m,2"]
-|===
-| Name | Type | Default | Usage
-
-[[original]]| ttsEditor.compatibility.behaveLikeOriginal | boolean | false
-| Behave like the original TTS Editor extension while keeping this fork's bug fixes.
-While enabled it overrides: connection mode `direct`, sync mode `classic`, clean up on load `everything`, Update Object source `dataFile`, preserve Global stubs off, MCP off.
-Bug fixes that stay active: Lua return values are matched to the request that asked for them, and overlapping imports wait for each other instead of mixing their results.
 |===

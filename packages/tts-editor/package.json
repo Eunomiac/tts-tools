@@ -183,6 +183,51 @@
             "default": true,
             "order": 2
           },
+          "ttsEditor.resyncAfterSaveAndPlay": {
+            "markdownDescription": "With **Sync: Mode** set to `fast`, also rebuild every object's `data.json` after each Save and Play (slow on large saves). The **Save and Play (Full Resync)** commands do this for a single Save and Play.",
+            "type": "boolean",
+            "default": false,
+            "order": 3
+          },
+          "ttsEditor.sync.preserveGlobalStubs": {
+            "markdownDescription": "Keep a hand-written `objects/Global.lua` that only contains `require(...)` lines, or an `objects/Global.xml` that only contains `<Include src=...>` tags, instead of replacing it with the copy from TTS on load. Save and Play always rebundles these stubs from their include files, even with **Save and Play (Bundled)**.",
+            "type": "boolean",
+            "default": false,
+            "order": 4
+          },
+          "ttsEditor.mcp.enabled": {
+            "markdownDescription": "Offer a built-in MCP server named `tts-tools` to AI agents in Cursor and VS Code, so they can run Lua in TTS and read its output. Needs **Connection: Mode** set to `gateway`.",
+            "type": "boolean",
+            "default": true,
+            "order": 5
+          }
+        }
+      },
+      {
+        "id": "ttsEditor.compatibility",
+        "title": "Compatibility with the original extension",
+        "order": 2,
+        "properties": {
+          "ttsEditor.compatibility.behaveLikeOriginal": {
+            "markdownDescription": "Behave like the original TTS Editor extension this fork is based on, while keeping its bug fixes. Overrides these settings while enabled: **Connection: Mode** → `direct`, **Sync: Mode** → `classic`, **Sync: Clean Up On Load** → `everything`, **Update Object: Source** → `dataFile`, **Sync: Preserve Global Stubs** → off, **MCP: Enabled** → off.",
+            "type": "boolean",
+            "default": false,
+            "order": 1
+          },
+          "ttsEditor.connection.mode": {
+            "markdownDescription": "How the extension connects to Tabletop Simulator. TTS only talks to one program on port 39998, so sharing needs a small helper process.",
+            "type": "string",
+            "enum": [
+              "gateway",
+              "direct"
+            ],
+            "enumDescriptions": [
+              "Start a small helper process that holds the TTS port and shares it with other local tools (such as the MCP server below). Falls back to `direct` if the helper cannot start.",
+              "The extension listens on the TTS port itself, like the original extension. Other local tools cannot connect at the same time."
+            ],
+            "default": "gateway",
+            "order": 2
+          },
           "ttsEditor.sync.mode": {
             "markdownDescription": "How object files are refreshed when a game loads in TTS.",
             "type": "string",
@@ -196,12 +241,6 @@
             ],
             "default": "fast",
             "order": 3
-          },
-          "ttsEditor.resyncAfterSaveAndPlay": {
-            "markdownDescription": "With **Sync: Mode** set to `fast`, also rebuild every object's `data.json` after each Save and Play (slow on large saves). The **Save and Play (Full Resync)** commands do this for a single Save and Play.",
-            "type": "boolean",
-            "default": false,
-            "order": 4
           },
           "ttsEditor.sync.cleanUpOnLoad": {
             "markdownDescription": "Which files under `.tts` are deleted when a game loads.",
@@ -217,7 +256,7 @@
               "Never delete anything. Files from other mods or removed objects stay on disk."
             ],
             "default": "removedObjects",
-            "order": 5
+            "order": 4
           },
           "ttsEditor.updateObject.source": {
             "markdownDescription": "Where **Update Object** takes everything except the script, UI and state from before it respawns the object.",
@@ -231,53 +270,7 @@
               "Use the object's `data.json` file (the original extension's behavior). Choose this if you edit `data.json` by hand."
             ],
             "default": "liveTable",
-            "order": 6
-          },
-          "ttsEditor.sync.preserveGlobalStubs": {
-            "markdownDescription": "Keep a hand-written `objects/Global.lua` that only contains `require(...)` lines, or an `objects/Global.xml` that only contains `<Include src=...>` tags, instead of replacing it with the copy from TTS on load. Save and Play always rebundles these stubs from their include files, even with **Save and Play (Bundled)**.",
-            "type": "boolean",
-            "default": false,
-            "order": 7
-          }
-        }
-      },
-      {
-        "id": "ttsEditor.connection",
-        "title": "Connection and AI Agents",
-        "order": 2,
-        "properties": {
-          "ttsEditor.connection.mode": {
-            "markdownDescription": "How the extension connects to Tabletop Simulator. TTS only talks to one program on port 39998, so sharing needs a small helper process.",
-            "type": "string",
-            "enum": [
-              "gateway",
-              "direct"
-            ],
-            "enumDescriptions": [
-              "Start a small helper process that holds the TTS port and shares it with other local tools (such as the MCP server below). Falls back to `direct` if the helper cannot start.",
-              "The extension listens on the TTS port itself, like the original extension. Other local tools cannot connect at the same time."
-            ],
-            "default": "gateway",
-            "order": 1
-          },
-          "ttsEditor.mcp.enabled": {
-            "markdownDescription": "Offer a built-in MCP server named `tts-tools` to AI agents in Cursor and VS Code, so they can run Lua in TTS and read its output. Needs **Connection: Mode** set to `gateway`.",
-            "type": "boolean",
-            "default": true,
-            "order": 2
-          }
-        }
-      },
-      {
-        "id": "ttsEditor.compatibility",
-        "title": "Compatibility",
-        "order": 3,
-        "properties": {
-          "ttsEditor.compatibility.behaveLikeOriginal": {
-            "markdownDescription": "Behave like the original TTS Editor extension this fork is based on, while keeping its bug fixes. Overrides these settings while enabled: **Connection: Mode** → `direct`, **Sync: Mode** → `classic`, **Sync: Clean Up On Load** → `everything`, **Update Object: Source** → `dataFile`, **Sync: Preserve Global Stubs** → off, **MCP: Enabled** → off.",
-            "type": "boolean",
-            "default": false,
-            "order": 1
+            "order": 5
           }
         }
       }
