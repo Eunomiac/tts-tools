@@ -2,58 +2,98 @@ import { Uri, workspace } from "vscode";
 
 import { getOutputPath } from "./io/files";
 
-const configName = {
-  name: "ttsEditor",
+/** How the extension reaches TTS: through the shared gateway helper, or by listening on the editor port itself. */
+export type ConnectionMode = "gateway" | "direct";
+
+/** `fast` reuses files already on disk; `classic` re-reads every object from TTS like the original extension. */
+export type SyncMode = "fast" | "classic";
+
+/** Which files under `.tts` get deleted when a game loads. */
+export type CleanUpOnLoad = "removedObjects" | "everything" | "nothing";
+
+/** Where Update Object takes the object's non-script data from before respawning it. */
+export type UpdateObjectSource = "liveTable" | "dataFile";
+
+const section = "ttsEditor";
+
+const settingNames = {
   includePath: "includePath",
-  useMessages: "enableMessages",
+  messagesEnabled: "enableMessages",
   resyncAfterSaveAndPlay: "resyncAfterSaveAndPlay",
+  behaveLikeOriginal: "compatibility.behaveLikeOriginal",
+  connectionMode: "connection.mode",
+  syncMode: "sync.mode",
+  cleanUpOnLoad: "sync.cleanUpOnLoad",
+  preserveGlobalStubs: "sync.preserveGlobalStubs",
+  updateObjectSource: "updateObject.source",
   mcpEnabled: "mcp.enabled",
 };
 
-const includePatterns = () => {
-  return ["?.lua", "?.ttslua"];
-};
+/** Settings that change how (or whether) the extension connects to TTS. */
+export const connectionSettings = [settingNames.behaveLikeOriginal, settingNames.connectionMode].map(
+  (name) => `${section}.${name}`
+);
+
+export const mcpSettings = [settingNames.behaveLikeOriginal, settingNames.mcpEnabled].map(
+  (name) => `${section}.${name}`
+);
+
+const getSetting = <T>(name: string): T | undefined => workspace.getConfiguration(section).get<T>(name);
+
+const behaveLikeOriginal = (): boolean => getSetting<boolean>(settingNames.behaveLikeOriginal) === true;
+
+const includePatterns = ["?.lua", "?.ttslua"];
 
 const includePaths = (): Uri[] => {
-  const paths = workspace.workspaceFolders ?? [];
-  const relative = getConfig<string>(configName.includePath);
+  const workspaceFolders = workspace.workspaceFolders ?? [];
+  const relative = getSetting<string>(settingNames.includePath) ?? ".";
   const libraryPath = getOutputPath("library");
 
-  return [...paths.map((w) => Uri.joinPath(w.uri, `/${relative}`)), libraryPath];
+  return [...workspaceFolders.map((folder) => Uri.joinPath(folder.uri, `/${relative}`)), libraryPath];
 };
 
 const luaIncludePaths = (): string[] => {
-  const patterns = includePatterns();
-
   const result: Uri[] = [];
-  includePaths().forEach((path) => {
-    patterns.forEach((pattern) => {
+  for (const path of includePaths()) {
+    for (const pattern of includePatterns) {
       result.push(Uri.joinPath(path, pattern));
-    });
-  });
-
-  return result.map((u) => u.fsPath);
+    }
+  }
+  return result.map((uri) => uri.fsPath);
 };
 
-const xmlIncludePaths = (): string[] => {
-  return includePaths().map((u) => u.fsPath);
-};
+const xmlIncludePaths = (): string[] => includePaths().map((uri) => uri.fsPath);
 
-const messagesEnabled = (): boolean => getConfig(configName.useMessages);
+const messagesEnabled = (): boolean => getSetting<boolean>(settingNames.messagesEnabled) !== false;
 
-const resyncAfterSaveAndPlay = (): boolean => getConfig(configName.resyncAfterSaveAndPlay) === true;
+const resyncAfterSaveAndPlay = (): boolean => getSetting<boolean>(settingNames.resyncAfterSaveAndPlay) === true;
 
-const mcpEnabled = (): boolean => getConfig(configName.mcpEnabled) !== false;
+const connectionMode = (): ConnectionMode =>
+  behaveLikeOriginal() ? "direct" : getSetting<ConnectionMode>(settingNames.connectionMode) ?? "gateway";
 
-const getConfig = <T>(name: string) => {
-  const config = workspace.getConfiguration(configName.name);
-  return config.get(name) as T;
-};
+const syncMode = (): SyncMode =>
+  behaveLikeOriginal() ? "classic" : getSetting<SyncMode>(settingNames.syncMode) ?? "fast";
+
+const cleanUpOnLoad = (): CleanUpOnLoad =>
+  behaveLikeOriginal() ? "everything" : getSetting<CleanUpOnLoad>(settingNames.cleanUpOnLoad) ?? "removedObjects";
+
+const preserveGlobalStubs = (): boolean =>
+  !behaveLikeOriginal() && getSetting<boolean>(settingNames.preserveGlobalStubs) === true;
+
+const updateObjectSource = (): UpdateObjectSource =>
+  behaveLikeOriginal() ? "dataFile" : getSetting<UpdateObjectSource>(settingNames.updateObjectSource) ?? "liveTable";
+
+const mcpEnabled = (): boolean => !behaveLikeOriginal() && getSetting<boolean>(settingNames.mcpEnabled) !== false;
 
 export default {
   luaIncludePaths,
   xmlIncludePaths,
   messagesEnabled,
   resyncAfterSaveAndPlay,
+  connectionMode,
+  syncMode,
+  cleanUpOnLoad,
+  preserveGlobalStubs,
+  updateObjectSource,
   mcpEnabled,
 };

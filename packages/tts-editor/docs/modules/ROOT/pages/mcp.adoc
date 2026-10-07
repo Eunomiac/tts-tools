@@ -8,12 +8,13 @@ The extension ships a small https://modelcontextprotocol.io[Model Context Protoc
 ** In Cursor this uses `vscode.cursor.mcp.registerServer`.
 ** In VS Code 1.101+ this uses the `mcpServerDefinitionProviders` contribution.
 ** Editors without either API skip registration; you can still point your MCP config at `<extension>/dist/mcp/server.js` (run with `node`).
-* The server is a separate `node` process. It connects to the local TTS gateway (control port 39997) as route tag `MCP`, the same way the extension and other local tools do.
+* The server is a separate process. It uses Node.js from your PATH if there is one, otherwise your editor's built-in runtime.
+It connects to the local TTS gateway (control port 39997) as route tag `MCP`, the same way the extension and other local tools do.
 Because the gateway owns port 39998, the extension and the MCP server work side by side.
-* If the gateway is not running (for example after *Release TTS Editor Port*), tool calls report that instead of grabbing port 39998.
+* If the gateway is not running (for example after *Release TTS Editor Port*, or with xref:settings.adoc#connection[connection mode] `direct`), tool calls report that instead of grabbing port 39998.
 The next call reconnects once the gateway is back.
 
-Requirements: TTS running with a game loaded, the TTS Tools extension active (it starts the gateway), and `node` on your PATH.
+Requirements: TTS running with a game loaded, and the TTS Tools extension active in `gateway` connection mode (the default; it starts the gateway).
 
 == Tools
 
@@ -38,4 +39,4 @@ Lua can address a print to one client with the `<@MCP@>` prefix (see the gateway
 
 == Turning it off
 
-Set xref:settings.adoc#mcp[`ttsEditor.mcp.enabled`] to `false`. The server is unregistered immediately.
+Set xref:settings.adoc#mcp[`ttsEditor.mcp.enabled`] to `false` (or turn on xref:settings.adoc#original[Behave like the original]). The server is unregistered immediately.

@@ -42,15 +42,44 @@ export const resolveGatewayCli = (extensionPath: string): string => {
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-/**
- * Extension Host `process.execPath` is Cursor/Electron — do not spawn the helper with it.
- * Prefer a real Node binary on PATH.
- */
-export const resolveNodeExecutable = (): string => {
-  if (process.execPath && /node(\.exe)?$/i.test(process.execPath)) {
-    return process.execPath;
+/** A command line that runs a plain Node.js script, plus the extra environment it needs. */
+export type NodeRuntime = {
+  command: string;
+  env: Record<string, string>;
+  description: string;
+};
+
+const findOnPath = (executableName: string): string | undefined => {
+  const directories = (process.env.PATH ?? "").split(path.delimiter).filter((dir) => dir.length > 0);
+  for (const directory of directories) {
+    const candidate = path.join(directory, executableName);
+    if (fs.existsSync(candidate)) {
+      return candidate;
+    }
   }
-  return process.platform === "win32" ? "node.exe" : "node";
+  return undefined;
+};
+
+/**
+ * Prefer a Node.js install on PATH. Without one, reuse the editor's own runtime: VS Code, Cursor and
+ * other Electron-based editors behave like plain Node when started with `ELECTRON_RUN_AS_NODE=1`
+ * (without that variable, `process.execPath` would open another editor window).
+ */
+export const resolveNodeRuntime = (): NodeRuntime => {
+  if (/^node(\.exe)?$/i.test(path.basename(process.execPath))) {
+    return { command: process.execPath, env: {}, description: `Node.js at ${process.execPath}` };
+  }
+
+  const nodeOnPath = findOnPath(process.platform === "win32" ? "node.exe" : "node");
+  if (nodeOnPath) {
+    return { command: nodeOnPath, env: {}, description: `Node.js at ${nodeOnPath}` };
+  }
+
+  return {
+    command: process.execPath,
+    env: { ELECTRON_RUN_AS_NODE: "1" },
+    description: `the editor's built-in runtime (${process.execPath})`,
+  };
 };
 
 /**
@@ -67,18 +96,22 @@ export const ensureGatewayHelper = async (
   }
 
   const cliJs = resolveGatewayCli(extensionPath);
-  const nodeExec = resolveNodeExecutable();
-  log?.(`Spawning tts-gateway: ${nodeExec} ${cliJs}`);
+  const runtime = resolveNodeRuntime();
+  log?.(`Starting the TTS gateway helper with ${runtime.description}`);
 
-  const child = spawn(nodeExec, [cliJs], {
+  const child = spawn(runtime.command, [cliJs], {
     cwd: path.dirname(cliJs),
+    env: { ...process.env, ...runtime.env },
     stdio: ["ignore", "pipe", "pipe"],
     windowsHide: true,
     detached: false,
-    shell: process.platform === "win32",
   });
   ownedHelper = child;
 
+  let spawnError: Error | undefined;
+  child.on("error", (error) => {
+    spawnError = error;
+  });
   child.stdout?.on("data", (chunk: Buffer) => log?.(`[gateway] ${chunk.toString("utf8").trimEnd()}`));
   child.stderr?.on("data", (chunk: Buffer) => log?.(`[gateway:err] ${chunk.toString("utf8").trimEnd()}`));
   child.on("exit", (code, signal) => {
@@ -92,6 +125,9 @@ export const ensureGatewayHelper = async (
   while (Date.now() < deadline) {
     if (await probeControlPort(controlPort, 300)) {
       return { alreadyRunning: false, pid: child.pid };
+    }
+    if (spawnError) {
+      throw new Error(`Could not start the gateway helper: ${spawnError.message}`);
     }
     if (child.exitCode !== null) {
       throw new Error(`Gateway helper exited early with code ${child.exitCode}`);

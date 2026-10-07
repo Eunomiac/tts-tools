@@ -6,7 +6,12 @@ import { unbundleRootModule, unbundleXml } from "./bundle";
 import { getOutputFileUri, getOutputPath, hasOutputFile, readOutputFile, writeOutputFile } from "./files";
 import { Plugin } from "../plugin";
 
-export type SyncMode = "echo" | "incremental" | "full";
+/**
+ * - `echo`: our own Save & Play reload — only refresh what we just sent.
+ * - `incremental`: write scripts from the payload; fetch `getJSON` only for objects without a `data.json`.
+ * - `full`: fetch `getJSON` for every object (what the original extension always did).
+ */
+export type ObjectReadMode = "echo" | "incremental" | "full";
 
 export interface ObjectSyncDeps {
   plugin: Plugin;
@@ -15,7 +20,7 @@ export interface ObjectSyncDeps {
 }
 
 export interface ObjectSyncRequest {
-  mode: SyncMode;
+  mode: ObjectReadMode;
   scriptStates: IncomingJsonObject[];
   /** Scripts we just sent on Save & Play (echo path may prefer these for bundled refresh). */
   sentScripts?: OutgoingJsonObject[];
@@ -26,6 +31,10 @@ export interface ObjectSyncRequest {
    * load / full resync). Single-object paths (Update Object, push object) must leave this false.
    */
   pruneMissing?: boolean;
+  /** Keep hand-written require/Include stubs in `objects/Global.*` instead of overwriting them with TTS's copy. */
+  preserveGlobalStubs?: boolean;
+  /** When false, nothing under `.tts` is deleted (renamed or vanished objects keep their old files). */
+  deleteStaleFiles?: boolean;
 }
 
 const sanitizeBaseName = (name: string | undefined): string => {
@@ -135,7 +144,15 @@ export const looksLikeLuaRequireStub = (content: string): boolean => {
  */
 export const reconcileObjectsFromState = async (deps: ObjectSyncDeps, request: ObjectSyncRequest): Promise<void> => {
   const { plugin, getObjectData, debug } = deps;
-  const { mode, scriptStates, sentScripts, openFiles = false, pruneMissing = false } = request;
+  const {
+    mode,
+    scriptStates,
+    sentScripts,
+    openFiles = false,
+    pruneMissing = false,
+    preserveGlobalStubs = false,
+    deleteStaleFiles = true,
+  } = request;
   const log = debug ?? (() => undefined);
 
   plugin.setStatus(`Syncing ${scriptStates.length} scripts (${mode})`);
@@ -148,23 +165,24 @@ export const reconcileObjectsFromState = async (deps: ObjectSyncDeps, request: O
 
   const writeGlobalFiles = async (script: string | undefined, ui: string | undefined) => {
     const fileName = "Global";
-    // Echo must refresh .tts/bundled for Go to Error, but must not replace Include/require stubs under objects/
+    const isPreservedStub = async (extension: string, looksLikeStub: (content: string) => boolean) => {
+      if (!preserveGlobalStubs) {
+        return false;
+      }
+      const existing = await readOutputFile(`${fileName}.${extension}`, "script");
+      return existing !== undefined && looksLikeStub(existing);
+    };
+    // The echo is our own Save & Play: objects/Global.* already holds what was sent, so only refresh the bundle.
     if (script !== undefined) {
       await writeIfChanged(`${fileName}.lua`, script, "bundle");
-      if (mode !== "echo") {
-        const existing = await readOutputFile(`${fileName}.lua`, "script");
-        if (!existing || !looksLikeLuaRequireStub(existing)) {
-          await writeIfChanged(`${fileName}.lua`, getUnbundledLua(script), "script");
-        }
+      if (mode !== "echo" && !(await isPreservedStub("lua", looksLikeLuaRequireStub))) {
+        await writeIfChanged(`${fileName}.lua`, getUnbundledLua(script), "script");
       }
     }
     if (ui !== undefined) {
       await writeIfChanged(`${fileName}.xml`, ui, "bundle");
-      if (mode !== "echo") {
-        const existing = await readOutputFile(`${fileName}.xml`, "script");
-        if (!existing || !looksLikeXmlIncludeStub(existing)) {
-          await writeIfChanged(`${fileName}.xml`, unbundleXml(ui).root, "script");
-        }
+      if (mode !== "echo" && !(await isPreservedStub("xml", looksLikeXmlIncludeStub))) {
+        await writeIfChanged(`${fileName}.xml`, unbundleXml(ui).root, "script");
       }
     }
     plugin.setLoadedObject({
@@ -235,7 +253,7 @@ export const reconcileObjectsFromState = async (deps: ObjectSyncDeps, request: O
       const fullFileName = `${sanitizeBaseName(jsonName)}.${guid}`;
 
       // Drop stale Name.guid.* files if nickname changed
-      if (fullFileName !== fileName) {
+      if (fullFileName !== fileName && deleteStaleFiles) {
         await deleteFilesForGuid(guid);
       }
 
@@ -345,8 +363,65 @@ export const reconcileObjectsFromState = async (deps: ObjectSyncDeps, request: O
     }
     if (!seenGuids.has(loaded.guid)) {
       log(`objectSync prune ${loaded.guid}`);
-      await deleteFilesForGuid(loaded.guid);
+      if (deleteStaleFiles) {
+        await deleteFilesForGuid(loaded.guid);
+      }
       plugin.removeLoadedObject(loaded.guid);
+    }
+  }
+};
+
+const objectFileSuffixes = [".data.json", ".state.txt", ".lua", ".xml"];
+
+/** `Name.abc123.data.json` → `Name.abc123`; undefined for files the extension does not write. */
+const objectBaseName = (fileName: string): string | undefined => {
+  const suffix = objectFileSuffixes.find((candidate) => fileName.endsWith(candidate));
+  return suffix ? fileName.slice(0, -suffix.length) : undefined;
+};
+
+const endsWithGuid = (baseName: string): boolean => /\.[0-9a-f]{6}$/i.test(baseName);
+
+/**
+ * Delete object files left over from objects that are no longer loaded: objects removed from the
+ * table, objects from a previously loaded game, and old copies of renamed objects.
+ * Global files and anything the extension did not name `<name>.<guid>.<ext>` are left alone.
+ * Call only after a complete inventory (a game load), never after a single-object refresh.
+ */
+export const removeOrphanedObjectFiles = async (plugin: Plugin, log: (message: string) => void): Promise<void> => {
+  const loadedBaseNames = new Set(plugin.getLoadedObjects().map((object) => object.fileName));
+  let removed = 0;
+
+  for (const type of ["script", "bundle"] as const) {
+    const directory = getOutputPath(type);
+    let entries: [string, FileType][];
+    try {
+      entries = await workspace.fs.readDirectory(directory);
+    } catch {
+      continue;
+    }
+
+    for (const [name, fileType] of entries) {
+      const baseName = fileType === FileType.File ? objectBaseName(name) : undefined;
+      if (!baseName || loadedBaseNames.has(baseName) || !endsWithGuid(baseName)) {
+        continue;
+      }
+      await workspace.fs.delete(Uri.joinPath(directory, name));
+      removed += 1;
+    }
+  }
+
+  if (removed > 0) {
+    log(`Removed ${removed} file(s) for objects that are no longer in the game`);
+  }
+};
+
+/** Delete everything the extension writes on load (`objects`, `bundled`, `output`), like the original extension. */
+export const clearOutputFolders = async (): Promise<void> => {
+  for (const type of ["bundle", "output", "script"] as const) {
+    try {
+      await workspace.fs.delete(getOutputPath(type), { recursive: true });
+    } catch {
+      // The folder does not exist yet.
     }
   }
 };

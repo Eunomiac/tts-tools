@@ -8,7 +8,7 @@ import {
   PushingNewObject,
 } from "@matanlurey/tts-editor";
 import { connectGateway, type GatewaySession } from "@tts-tools/gateway-client";
-import { TTSObject as SaveFileObject, bundleObject } from "@tts-tools/savefile";
+import { TTSObject as SaveFileObject, bundleObject, unbundleObject } from "@tts-tools/savefile";
 import { Range, Uri, window, workspace } from "vscode";
 
 import { command } from "./command";
@@ -28,10 +28,12 @@ import {
 import { getOutputFileUri, getOutputPath, OutputType, readOutputFile, writeOutputFile } from "./io/files";
 import { ImportMutex } from "./io/importMutex";
 import {
+  clearOutputFolders,
   looksLikeLuaRequireStub,
   looksLikeXmlIncludeStub,
+  ObjectReadMode,
   reconcileObjectsFromState,
-  SyncMode,
+  removeOrphanedObjectFiles,
 } from "./io/objectSync";
 import {
   EditorMessage,
@@ -45,12 +47,16 @@ import { Plugin } from "./plugin";
 
 const polyFills = ["object", "write"];
 const ROUTE_TAG = "TTSTOOLS";
+const CLIENT_ID = "ttstools-extension";
 
 export class TTSAdapter {
   private session: GatewaySession | undefined;
   private plugin: Plugin;
   private lastError: Maybe<ErrorMessage> = undefined;
   private importMutex = new ImportMutex();
+  /** True when this session went through the gateway helper, so releasing should stop that helper. */
+  private connectedViaHelper = false;
+  private hasWarnedAboutHelperFallback = false;
   /** Set before Save & Play so the following loadingANewGame uses the fast echo path. */
   private expectSaveAndPlayEcho = false;
   private forceFullResyncOnEcho = false;
@@ -58,19 +64,15 @@ export class TTSAdapter {
 
   public constructor(plugin: Plugin) {
     this.plugin = plugin;
-    void this.startGatewayOnActivate();
+    void this.connectOnActivate();
   }
 
-  /**
-   * Start (or resume) the gateway helper and register as TTSTOOLS.
-   */
+  /** Connect to TTS using the configured connection mode (the status bar's "Claim"). */
   public claimEditorPort = async (): Promise<void> => {
     try {
-      const detail = await this.plugin.progress("Claiming TTS editor port (gateway)", async () => {
-        await this.connectSession();
-        return "Gateway helper holding 39998; registered as TTSTOOLS.";
-      });
-      this.plugin.setPortStatus("gateway", detail);
+      const detail = await this.plugin.progress("Connecting to Tabletop Simulator", async () =>
+        this.describeSession(await this.connectSession())
+      );
       this.plugin.info(detail);
       window.showInformationMessage(detail);
     } catch (e) {
@@ -81,14 +83,11 @@ export class TTSAdapter {
     }
   };
 
-  /**
-   * Stop the gateway helper so another local app can bind 39998 directly.
-   */
+  /** Disconnect so another local tool can listen on the TTS editor port. */
   public releaseEditorPort = async (): Promise<void> => {
     try {
       await this.disconnectSession();
-      await stopGatewayHelper(undefined, this.plugin.info);
-      const detail = "Released gateway. Another local tool can Claim 39998 now.";
+      const detail = "Released the TTS editor port. Another local tool can use it now.";
       this.plugin.setPortStatus("released", detail);
       this.plugin.info(detail);
       window.showInformationMessage(detail);
@@ -100,28 +99,29 @@ export class TTSAdapter {
     }
   };
 
+  /** Reconnect after a connection setting changed. */
+  public reconnect = async (): Promise<void> => {
+    await this.disconnectSession();
+    await this.claimEditorPort();
+  };
+
   public isHoldingEditorPort = (): boolean => this.session !== undefined;
 
-  /** Close session and stop helper; called from extension deactivate. */
+  /** Called from extension deactivate. */
   public dispose = async (): Promise<void> => {
     try {
       await this.disconnectSession();
-      await stopGatewayHelper(undefined, this.plugin.info);
     } catch (e) {
       this.plugin.error(`dispose: ${e}`);
     }
     this.plugin.setPortStatus("released", "Extension deactivated.");
   };
 
-  private startGatewayOnActivate = async () => {
+  private connectOnActivate = async () => {
     try {
-      await this.connectSession();
-      this.plugin.setPortStatus("gateway", "Gateway helper holding editor port 39998.");
-      this.plugin.info("TTS gateway connected (TTSTOOLS).");
+      this.plugin.info(this.describeSession(await this.connectSession()));
     } catch (e) {
-      const message =
-        `Could not start TTS gateway (${e}). Use “Claim TTS Editor Port” to retry, ` +
-        `or free port 39998 / 39997 and try again.`;
+      const message = `Could not connect to TTS (${e}). Use “Claim TTS Editor Port” to retry.`;
       this.plugin.setPortStatus("error", message);
       this.plugin.error(message);
     }
@@ -131,29 +131,70 @@ export class TTSAdapter {
     if (this.session) {
       return this.session;
     }
-    const extensionPath = this.plugin.fileHandler.extensionPath;
-    await ensureGatewayHelper(extensionPath, undefined, this.plugin.info);
-    const session = await connectGateway({
-      routeTag: ROUTE_TAG,
-      clientId: "ttstools-extension",
-      // Extension owns the helper lifecycle; do not steal 39998 via direct failover.
-      failover: false,
-    });
+    const session =
+      configuration.connectionMode() === "gateway"
+        ? await this.connectThroughGatewayHelper()
+        : await this.connectDirectly();
     this.bindSession(session);
     this.session = session;
+    this.plugin.setPortStatus(session.mode === "gateway" ? "gateway" : "holding", this.describeSession(session));
     return session;
   };
 
-  private disconnectSession = async (): Promise<void> => {
-    if (!this.session) {
+  /** Joins a gateway that another tool already runs; otherwise listens on the editor port itself. */
+  private connectDirectly = async (): Promise<GatewaySession> =>
+    connectGateway({ routeTag: ROUTE_TAG, clientId: CLIENT_ID, failover: true });
+
+  private connectThroughGatewayHelper = async (): Promise<GatewaySession> => {
+    try {
+      await ensureGatewayHelper(this.plugin.fileHandler.extensionPath, undefined, this.plugin.info);
+    } catch (error) {
+      this.warnAboutHelperFallback(error);
+      return this.connectDirectly();
+    }
+    this.connectedViaHelper = true;
+    // The extension owns the helper's lifecycle, so it must not grab the editor port behind the helper's back.
+    return connectGateway({ routeTag: ROUTE_TAG, clientId: CLIENT_ID, failover: false });
+  };
+
+  private warnAboutHelperFallback = (error: unknown) => {
+    this.plugin.error(`The TTS gateway helper could not start: ${error}`);
+    if (this.hasWarnedAboutHelperFallback) {
       return;
     }
-    try {
-      await this.session.close();
-    } catch {
-      // ignore
+    this.hasWarnedAboutHelperFallback = true;
+    void window
+      .showWarningMessage(
+        "TTS Tools could not start its gateway helper, so it connected to TTS directly. " +
+          "Everything in the editor works, but other local tools (such as the MCP server for AI agents) " +
+          "cannot share the connection. Details are in the TTS Editor output.",
+        "Show Output"
+      )
+      .then((choice) => {
+        if (choice === "Show Output") {
+          this.plugin.showOutput();
+        }
+      });
+  };
+
+  private describeSession = (session: GatewaySession): string =>
+    session.mode === "gateway"
+      ? "Connected to TTS through the gateway helper (other local tools can share the connection)."
+      : "Connected to TTS directly on the editor port.";
+
+  private disconnectSession = async (): Promise<void> => {
+    if (this.session) {
+      try {
+        await this.session.close();
+      } catch {
+        // Already closed.
+      }
+      this.session = undefined;
     }
-    this.session = undefined;
+    if (this.connectedViaHelper) {
+      this.connectedViaHelper = false;
+      await stopGatewayHelper(undefined, this.plugin.info);
+    }
   };
 
   private requireSession = (): GatewaySession => {
@@ -189,8 +230,7 @@ export class TTSAdapter {
       } else if (status.mode === "gateway") {
         this.plugin.setPortStatus("gateway", status.detail ?? "Connected via gateway");
       } else if (status.mode === "direct") {
-        // Unexpected for the extension (failover:false), but surface clearly if it happens.
-        this.plugin.setPortStatus("holding", status.detail ?? "Direct editor port");
+        this.plugin.setPortStatus("holding", status.detail ?? "Listening on the editor port directly");
       }
     });
   };
@@ -308,6 +348,11 @@ export class TTSAdapter {
     }
   }
 
+  /**
+   * Respawn an object with its local script, UI and state. Everything else (position, contents,
+   * nested objects) comes from the live table by default, or from `data.json` when
+   * `ttsEditor.updateObject.source` is `dataFile`.
+   */
   public async updateObject(object: LoadedObject) {
     const readObjectFile = async (extension: string) => {
       try {
@@ -317,14 +362,11 @@ export class TTSAdapter {
       }
     };
 
-    const dataFile = await readObjectFile("data.json");
-    if (!dataFile) {
-      window.showErrorMessage(`Can not find data file for object ${object.guid}`);
-      return;
-    }
-
     try {
-      const data = JSON.parse(dataFile) as SaveFileObject;
+      const data = await this.loadObjectDataForUpdate(object, readObjectFile);
+      if (!data) {
+        return;
+      }
       data.LuaScript = await readObjectFile("lua");
       data.XmlUI = await readObjectFile("xml");
 
@@ -359,6 +401,28 @@ spawnObjectJSON({
 
     command.refreshView();
   }
+
+  private loadObjectDataForUpdate = async (
+    object: LoadedObject,
+    readObjectFile: (extension: string) => Promise<string | undefined>
+  ): Promise<SaveFileObject | undefined> => {
+    if (configuration.updateObjectSource() === "liveTable") {
+      const liveData = await this.getObjectData(object.guid);
+      if (!liveData) {
+        window.showErrorMessage(`Object ${object.guid} is no longer on the table.`);
+        return undefined;
+      }
+      // Unbundled, so nested objects' scripts get re-bundled from the current include files.
+      return unbundleObject(liveData);
+    }
+
+    const dataFile = await readObjectFile("data.json");
+    if (!dataFile) {
+      window.showErrorMessage(`Can not find data file for object ${object.guid}`);
+      return undefined;
+    }
+    return JSON.parse(dataFile) as SaveFileObject;
+  };
 
   public goToLastError = () => {
     if (this.lastError) {
@@ -413,8 +477,8 @@ spawnObjectJSON({
     this.forceFullResyncOnEcho = false;
     this.pendingSentScripts = undefined;
 
-    let mode: SyncMode;
-    if (isEcho && forceFull) {
+    let mode: ObjectReadMode;
+    if (configuration.syncMode() === "classic" || (isEcho && forceFull)) {
       mode = "full";
     } else if (isEcho) {
       mode = "echo";
@@ -422,25 +486,33 @@ spawnObjectJSON({
       mode = "incremental";
     }
 
+    // loadingANewGame lists every scripted object, so anything else on disk or in the tree is gone —
+    // except for our own fast echo, which only refreshes what was just sent.
+    const isCompleteInventory = mode !== "echo";
+    const cleanUp = configuration.cleanUpOnLoad();
+
     const title = mode === "echo" ? "Updating scripts" : mode === "full" ? "Reading objects (full)" : "Syncing objects";
     await this.importMutex.runExclusive(async () => {
-      await this.plugin.progress(title, async () =>
-        reconcileObjectsFromState(
-          {
-            plugin: this.plugin,
-            getObjectData: this.getObjectData,
-            debug: this.plugin.debug,
-          },
-          {
-            mode,
-            scriptStates: message.scriptStates,
-            sentScripts,
-            openFiles: false,
-            // loadingANewGame always ships the full script inventory — safe to prune vanished GUIDs.
-            pruneMissing: mode !== "echo",
-          }
-        )
-      );
+      await this.plugin.progress(title, async () => {
+        if (isCompleteInventory && cleanUp === "everything") {
+          await clearOutputFolders();
+          this.plugin.resetLoadedObjects();
+        }
+
+        await reconcileObjectsFromState(this.objectSyncDeps(), {
+          mode,
+          scriptStates: message.scriptStates,
+          sentScripts,
+          openFiles: false,
+          pruneMissing: isCompleteInventory,
+          preserveGlobalStubs: configuration.preserveGlobalStubs(),
+          deleteStaleFiles: cleanUp !== "nothing",
+        });
+
+        if (isCompleteInventory && cleanUp === "removedObjects") {
+          await removeOrphanedObjectFiles(this.plugin, this.plugin.info);
+        }
+      });
     });
   };
 
@@ -448,21 +520,22 @@ spawnObjectJSON({
     this.plugin.debug(`recieved onPushObject ${message.messageID}`);
     await this.importMutex.runExclusive(async () => {
       await this.plugin.progress("Reading object", async () =>
-        reconcileObjectsFromState(
-          {
-            plugin: this.plugin,
-            getObjectData: this.getObjectData,
-            debug: this.plugin.debug,
-          },
-          {
-            mode: "incremental",
-            scriptStates: message.scriptStates,
-            openFiles: true,
-          }
-        )
+        reconcileObjectsFromState(this.objectSyncDeps(), {
+          mode: configuration.syncMode() === "classic" ? "full" : "incremental",
+          scriptStates: message.scriptStates,
+          openFiles: true,
+          preserveGlobalStubs: configuration.preserveGlobalStubs(),
+          deleteStaleFiles: configuration.cleanUpOnLoad() !== "nothing",
+        })
       );
     });
   };
+
+  private objectSyncDeps = () => ({
+    plugin: this.plugin,
+    getObjectData: this.getObjectData,
+    debug: this.plugin.debug,
+  });
 
   private onObjectCreated = async (message: ObjectCreated) => {
     this.plugin.debug(`recieved onObjectCreated ${message.guid}`);
@@ -656,20 +729,14 @@ return nil
 
   private readObject = async (guid: string, openFiles: boolean = false) => {
     await this.importMutex.runExclusive(async () => {
-      await reconcileObjectsFromState(
-        {
-          plugin: this.plugin,
-          getObjectData: this.getObjectData,
-          debug: this.plugin.debug,
-        },
-        {
-          // Refresh this GUID only — never prune the rest of the TTS Objects list.
-          mode: "full",
-          scriptStates: [{ guid, name: guid, script: "" }],
-          openFiles,
-          pruneMissing: false,
-        }
-      );
+      await reconcileObjectsFromState(this.objectSyncDeps(), {
+        // Refresh this GUID only — never prune the rest of the TTS Objects list.
+        mode: "full",
+        scriptStates: [{ guid, name: guid, script: "" }],
+        openFiles,
+        pruneMissing: false,
+        deleteStaleFiles: configuration.cleanUpOnLoad() !== "nothing",
+      });
     });
   };
 
@@ -682,6 +749,7 @@ return nil
     this.plugin.debug(`Using XML include path ${includePathXml}`);
 
     const errors = new Set<string>();
+    const preserveGlobalStubs = configuration.preserveGlobalStubs();
 
     for (const object of this.plugin.getLoadedObjects()) {
       try {
@@ -694,12 +762,12 @@ return nil
         let lua = "";
         let xml = "";
 
-        // Global stubs use require / Include — always rebundle from objects when those stubs exist,
-        // even for "Save and Play (Bundled)", so HUD XML changes under ui/ still reach TTS.
-        const rebundleGlobalLua =
-          object.isGlobal && fromObjectsLua !== undefined && looksLikeLuaRequireStub(fromObjectsLua);
-        const rebundleGlobalXml =
-          object.isGlobal && fromObjectsXml !== undefined && looksLikeXmlIncludeStub(fromObjectsXml);
+        // Preserved Global stubs are always rebundled from their include files, even for
+        // "Save and Play (Bundled)", because the bundled copy would not contain edits to those files.
+        const isGlobalStub = (content: string | undefined, looksLikeStub: (content: string) => boolean) =>
+          preserveGlobalStubs && object.isGlobal && content !== undefined && looksLikeStub(content);
+        const rebundleGlobalLua = isGlobalStub(fromObjectsLua, looksLikeLuaRequireStub);
+        const rebundleGlobalXml = isGlobalStub(fromObjectsXml, looksLikeXmlIncludeStub);
 
         if (rebundleGlobalLua || (bundled === "script" && fromObjectsLua)) {
           lua = await bundleLua(fromObjectsLua ?? "", includePathsLua);

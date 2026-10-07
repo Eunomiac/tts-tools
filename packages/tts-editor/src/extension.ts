@@ -1,4 +1,4 @@
-import { ExtensionContext, commands, window } from "vscode";
+import { ExtensionContext, commands, window, workspace } from "vscode";
 
 import { claimEditorPort, releaseEditorPort } from "./command/claimEditorPort";
 import createUi from "./command/createUi";
@@ -18,6 +18,7 @@ import showOutput from "./command/showOutput";
 import showView from "./command/showView";
 import updateObject from "./command/updateObject";
 import updateObjectState from "./command/updateObjectState";
+import { connectionSettings } from "./configuration";
 import { FileHandler } from "./io/files";
 import { registerMcpServer } from "./mcp/register";
 import { Plugin } from "./plugin";
@@ -80,6 +81,14 @@ export function activate(context: ExtensionContext) {
 
     window.registerTreeDataProvider("ttsEditor.objectView", viewProvider);
 
+    context.subscriptions.push(
+      workspace.onDidChangeConfiguration((event) => {
+        if (connectionSettings.some((setting) => event.affectsConfiguration(setting))) {
+          void adapter.reconnect();
+        }
+      })
+    );
+
     try {
       registerMcpServer(context, plugin.info);
     } catch (error) {
@@ -127,7 +136,7 @@ export function activate(context: ExtensionContext) {
 }
 
 export async function deactivate() {
-  console.log(`${extensionName} deactivating — stopping TTS gateway helper`);
+  console.log(`${extensionName} deactivating — disconnecting from TTS`);
   try {
     await activeAdapter?.dispose();
   } catch (e) {

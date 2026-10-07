@@ -1,8 +1,8 @@
 import * as path from "node:path";
 import * as vscode from "vscode";
 
-import configuration from "../configuration";
-import { resolveNodeExecutable } from "../gateway/ensureHelper";
+import configuration, { mcpSettings } from "../configuration";
+import { resolveNodeRuntime } from "../gateway/ensureHelper";
 
 export const MCP_SERVER_NAME = "tts-tools";
 const VSCODE_PROVIDER_ID = "ttsEditor.mcpServer";
@@ -40,9 +40,12 @@ type McpStdioServerDefinitionCtor = new (
  */
 export const registerMcpServer = (context: vscode.ExtensionContext, log: (message: string) => void): void => {
   const serverJs = path.join(context.extensionPath, "dist", "mcp", "server.js");
-  const command = resolveNodeExecutable();
+  const runtime = resolveNodeRuntime();
+  const command = runtime.command;
   const version = String(context.extension.packageJSON.version ?? "");
-  const env = { TTS_TOOLS_VERSION: version };
+  const env = { ...runtime.env, TTS_TOOLS_VERSION: version };
+  const affectsMcp = (event: vscode.ConfigurationChangeEvent) =>
+    mcpSettings.some((setting) => event.affectsConfiguration(setting));
 
   const cursorMcp = (vscode as unknown as { cursor?: { mcp?: CursorMcpApi } }).cursor?.mcp;
   if (cursorMcp?.registerServer) {
@@ -51,7 +54,7 @@ export const registerMcpServer = (context: vscode.ExtensionContext, log: (messag
       if (configuration.mcpEnabled() && !registered) {
         cursorMcp.registerServer({ name: MCP_SERVER_NAME, server: { command, args: [serverJs], env } });
         registered = true;
-        log(`Registered MCP server "${MCP_SERVER_NAME}" with Cursor (${command} ${serverJs})`);
+        log(`Registered MCP server "${MCP_SERVER_NAME}" with Cursor (runs on ${runtime.description})`);
       } else if (!configuration.mcpEnabled() && registered) {
         cursorMcp.unregisterServer(MCP_SERVER_NAME);
         registered = false;
@@ -60,8 +63,8 @@ export const registerMcpServer = (context: vscode.ExtensionContext, log: (messag
     };
     sync();
     context.subscriptions.push(
-      vscode.workspace.onDidChangeConfiguration((e) => {
-        if (e.affectsConfiguration("ttsEditor.mcp.enabled")) {
+      vscode.workspace.onDidChangeConfiguration((event) => {
+        if (affectsMcp(event)) {
           sync();
         }
       }),
@@ -88,8 +91,8 @@ export const registerMcpServer = (context: vscode.ExtensionContext, log: (messag
         provideMcpServerDefinitions: () =>
           configuration.mcpEnabled() ? [new StdioDefinition(MCP_SERVER_NAME, command, [serverJs], env, version)] : [],
       }),
-      vscode.workspace.onDidChangeConfiguration((e) => {
-        if (e.affectsConfiguration("ttsEditor.mcp.enabled")) {
+      vscode.workspace.onDidChangeConfiguration((event) => {
+        if (affectsMcp(event)) {
           changed.fire();
         }
       })

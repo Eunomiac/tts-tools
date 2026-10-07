@@ -28,12 +28,15 @@ After Save and Play, the extension refreshes `.tts` scripts/UI from the TTS relo
 It does **not** wipe the output folder or re-download every object with `getJSON` (that used to take minutes on large saves).
 Use **Save and Play (Full Resync)** (or enable setting `ttsEditor.resyncAfterSaveAndPlay`) when you need fresh object `data.json` files.
 **Get Objects** likewise syncs scripts from `scriptStates` and only calls `getJSON` for objects that are still missing a data file.
+When a game loads, files for objects that are not in that game are deleted; see xref:settings.adoc#clean-up[`ttsEditor.sync.cleanUpOnLoad`].
+To get the original extension's slower, re-read-everything behavior back, see xref:settings.adoc#original[Compatibility].
 
 Only one process can listen on TTS editor port **39998**.
-This fork starts a small **gateway helper** that holds 39998 and lets multiple local apps register on control port **39997**.
-Use **Release TTS Editor Port** (status bar or Command Palette) to stop the helper so another local app can bind 39998 directly without restarting Cursor.
-Use **Claim TTS Editor Port** to start the helper again (on Windows this force-stops other reclaimable listeners; it never kills Tabletop Simulator).
-Quitting Cursor / disabling the extension also stops the helper.
+By default the extension starts a small **gateway helper** that holds 39998 and lets multiple local apps register on control port **39997**.
+Use **Release TTS Editor Port** (status bar or Command Palette) to disconnect, so another local app can bind 39998 directly without restarting your editor.
+Use **Claim TTS Editor Port** to connect again.
+Closing the editor or disabling the extension also stops the helper.
+Set xref:settings.adoc#connection[`ttsEditor.connection.mode`] to `direct` to skip the helper entirely.
 
 [IMPORTANT]
 ====
