@@ -1,5 +1,8 @@
 blank_issues_enabled: true
 contact_links:
+  - name: Documentation
+    url: https://eunomiac.github.io/tts-tools/editor/latest/
+    about: Settings, the gateway, the MCP server, troubleshooting, and how to switch back to the original behavior.
   - name: Original TTS Editor extension
     url: https://github.com/Sebaestschjin/tts-tools/issues
     about: Problems that also happen in the original sebaestschjin.tts-editor extension belong there.

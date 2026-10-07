@@ -6,7 +6,7 @@ body:
     attributes:
       value: |
         Thanks for reporting! First, please check whether the problem goes away with
-        **Settings → Extensions → TTS Editor → Compatibility: Behave Like Original** turned on, and mention the result below.
+        **Compatibility: Behave Like Original** turned on (search the settings for `behaveLikeOriginal`), and mention the result below.
   - type: textarea
     id: what-happened
     attributes:
@@ -38,7 +38,7 @@ body:
     id: extension-version
     attributes:
       label: Extension version
-      placeholder: "2.7.0"
+      placeholder: "3.0.0"
     validations:
       required: true
   - type: input
