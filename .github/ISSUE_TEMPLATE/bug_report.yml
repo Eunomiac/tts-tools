@@ -1,0 +1,69 @@
+name: Bug report
+description: Something in the TTS Tools extension does not work as expected.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! First, please check whether the problem goes away with
+        **Settings → Extensions → TTS Editor → Compatibility: Behave Like Original** turned on, and mention the result below.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Load a save in TTS
+        2. Run "Get Objects"
+        3. ...
+    validations:
+      required: true
+  - type: dropdown
+    id: original-behavior
+    attributes:
+      label: Does it also happen with "Behave Like Original" turned on?
+      options:
+        - "Yes"
+        - "No"
+        - "Did not try"
+    validations:
+      required: true
+  - type: input
+    id: extension-version
+    attributes:
+      label: Extension version
+      placeholder: "2.7.0"
+    validations:
+      required: true
+  - type: input
+    id: editor
+    attributes:
+      label: Editor and version
+      placeholder: "VS Code 1.105, Cursor 2.1, VSCodium 1.104, ..."
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      placeholder: "Windows 11, macOS 15, Ubuntu 24.04, ..."
+    validations:
+      required: true
+  - type: textarea
+    id: settings
+    attributes:
+      label: Changed settings
+      description: Any `ttsEditor.*` settings you changed from their defaults.
+      render: json
+  - type: textarea
+    id: output
+    attributes:
+      label: Output log
+      description: Run **TTS Editor: Show Output** and paste the relevant lines.
+      render: text

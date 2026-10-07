@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.7.0] - 2026-10-07
+
+First public preview of the community fork (`eunomiac.tts-tools`). Includes every change since the original extension's 2.1.3; version numbers in parentheses mark when each change landed in the fork.
+
 ### Added
 
 - **Compatibility switches (2.7.0):** every behavior this fork changed can be switched back in the settings editor. `ttsEditor.compatibility.behaveLikeOriginal` turns them all back at once while keeping the bug fixes. Individual settings: `ttsEditor.connection.mode` (`gateway` / `direct`), `ttsEditor.sync.mode` (`fast` / `classic`), `ttsEditor.sync.cleanUpOnLoad` (`removedObjects` / `everything` / `nothing`), `ttsEditor.updateObject.source` (`liveTable` / `dataFile`), `ttsEditor.sync.preserveGlobalStubs`.

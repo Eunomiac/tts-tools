@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Original TTS Editor extension
+    url: https://github.com/Sebaestschjin/tts-tools/issues
+    about: Problems that also happen in the original sebaestschjin.tts-editor extension belong there.
