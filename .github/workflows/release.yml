@@ -50,6 +50,10 @@ jobs:
       - name: Package VSIX
         run: npm run vscode:package --prefix packages/tts-editor
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
       - name: Publish to Open VSX
         env:
           OVSX_PAT: ${{ secrets.OVSX_PAT }}
