@@ -14,7 +14,7 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "rimraf dist && tsc -p tsconfig.build.json",
-    "test": "vitest",
+    "test": "vitest run",
     "release": "npm publish --access public",
     "release:pre": "npm run build && npm test"
   },

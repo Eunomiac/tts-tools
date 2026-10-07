@@ -15,7 +15,7 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "rimraf dist && tsc -p tsconfig.build.json",
-    "test": "vitest",
+    "test": "vitest run",
     "release": "npm test && npm run build && npm publish --access public"
   },
   "devDependencies": {

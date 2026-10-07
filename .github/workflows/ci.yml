@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install and build libraries
+        shell: bash
+        run: |
+          for package in xmlbundle savefile tts-gateway gateway-client; do
+            npm ci --prefix "packages/$package"
+          done
+          npm run build:libs
+          npm run build:gateway
+          npm run build:client
+
+      - name: Test libraries
+        shell: bash
+        run: |
+          npm test --prefix packages/xmlbundle
+          npm test --prefix packages/savefile
+
+      - name: Install and build the extension
+        run: |
+          npm ci --prefix packages/tts-editor
+          npm run build:editor
+
+      - name: Lint
+        run: npm run lint --prefix packages/tts-editor
+
+      - name: Smoke checks
+        run: npm run smoke --prefix packages/tts-editor
+
+      - name: Package VSIX
+        if: matrix.os == 'ubuntu-latest'
+        run: npm run vscode:package --prefix packages/tts-editor
+
+      - uses: actions/upload-artifact@v4
+        if: matrix.os == 'ubuntu-latest'
+        with:
+          name: tts-tools-vsix
+          path: dist/tts-tools.vsix

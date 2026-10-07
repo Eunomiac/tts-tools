@@ -469,7 +469,7 @@
     "compile": "tsc -p ./",
     "bundle": "node ./scripts/bundle.js",
     "lint": "eslint src --ext ts",
-    "smoke": "node ./scripts/smoke-object-type.js && node ./scripts/smoke-units.js && node ./scripts/smoke-mcp.js",
+    "smoke": "node ./scripts/smoke-object-type.js && node ./scripts/smoke-units.js && node ./scripts/smoke-gateway.js && node ./scripts/smoke-mcp.js",
     "smoke:mcp": "node ./scripts/smoke-mcp.js"
   },
   "dependencies": {
