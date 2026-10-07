@@ -1,0 +1,53 @@
+= Troubleshooting
+
+Most problems show up in the *TTS Editor* output. Open it with the command *TTS Editor: Show Output*.
+
+== Nothing happens when I run Get Objects or Save and Play
+
+Look at the *TTS Port* item in the status bar (see xref:connection.adoc[]).
+
+* *TTS Port: error*: hover over it for the reason, then click it to claim the connection.
+* *TTS Port: released*: click it to claim the connection.
+* No *TTS Port* item at all: the extension is not active yet. It starts when the folder contains `.lua` or `.ttslua` files, when you open a Lua file, or when you run one of its commands.
+
+Also make sure TTS has a game loaded. TTS only answers editors while a game is open.
+
+== "TTS editor port 39998 is already in use"
+
+Another program is listening on the port TTS sends messages to, most often the original TTS Editor extension or another TTS extension in some editor window.
+Disable it, then click the status bar item. Details: xref:connection.adoc#_when_another_program_holds_port_39998[When another program holds port 39998].
+
+== "Another client ... took over this connection"
+
+Another editor window connected to TTS. Click the status bar item in the window you want to use. See xref:connection.adoc#_several_editor_windows[Several editor windows].
+
+== `require` or `<Include>` cannot be found
+
+Save and Play (Bundled) looks for modules relative to xref:settings.adoc#include[`ttsEditor.includePath`]. See xref:bundling.adoc#_setting_the_correct_lookup_path[Setting the correct lookup path].
+
+== Files from another mod appear or disappear in `.tts`
+
+When a game loads, the extension removes files for objects that are not in that game, so one folder can serve several mods.
+To keep everything, set xref:settings.adoc#clean-up[`ttsEditor.sync.cleanUpOnLoad`] to `nothing`. To wipe the folder on every load like the original extension, set it to `everything`.
+
+== My `require` stub in `objects/Global.lua` was replaced
+
+On load, Global's files are refreshed from TTS like every other object.
+To keep a hand-written stub there, turn on xref:settings.adoc#global-stubs[`ttsEditor.sync.preserveGlobalStubs`].
+
+== The AI agent says the gateway is not running
+
+The xref:mcp.adoc[MCP server] needs the gateway helper. Check that xref:settings.adoc#connection[`ttsEditor.connection.mode`] is `gateway` and that the status bar shows *TTS Port: gateway*; click it to claim the connection if it does not.
+
+== Something behaves differently from the original extension
+
+Turn on xref:settings.adoc#original[Behave Like Original] to get the original behavior back (see xref:compatibility.adoc[]).
+If the problem goes away, it is in one of this fork's changes. Please mention that when you report it.
+
+== macOS and Linux
+
+The connection to TTS has only been tested on Windows. If it does not work on your system, please report it, together with the *TTS Editor* output.
+
+== Reporting a problem
+
+Open an issue at https://github.com/Eunomiac/tts-tools/issues[github.com/Eunomiac/tts-tools/issues] and include the extension version, your editor and operating system, the relevant lines from the *TTS Editor* output, and whether *Behave Like Original* changes anything.

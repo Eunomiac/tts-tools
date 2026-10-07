@@ -1,13 +1,16 @@
-= TTS Editor
+= TTS Tools (Community Fork)
 
 A VS Code extension that implements the External Editor API for Tabletop Simulator to simplify editing and managing scripts and objects.
+It is a community fork of Sebastian Stern's https://github.com/Sebaestschjin/tts-tools[TTS Editor]; xref:compatibility.adoc[] lists what changed and how to switch it back.
+Unofficial; not affiliated with or endorsed by Berserk Games.
 
-You can find and install the extension from the https://marketplace.visualstudio.com/items?itemName=sebaestschjin.tts-editor[VS Code marketplace].
+Install it from the https://marketplace.visualstudio.com/items?itemName=eunomiac.tts-tools[VS Code Marketplace] or https://open-vsx.org/extension/eunomiac/tts-tools[Open VSX] (Cursor, VSCodium).
+If the original TTS Editor extension is installed, disable it first: both use the same TTS port.
 
 == Getting started
 
 * Start TTS and load a game.
-* Open VS Code with this extension.
+* Open VS Code (or Cursor) with this extension.
 * Open a directory or workspace in VS Code.
 * Execute the command "Get Objects" to get the scripts of all objects currently on the table.
 * Edit a script inside the `.tts` directory of your opened directory/workspace for any object.
@@ -18,6 +21,7 @@ You can find and install the extension from the https://marketplace.visualstudio
 NOTE: If you use `require` in your Lua scripts, be sure to checkout xref:bundling.adoc[] to see how to correctly set up the extension for your use-case.
 
 To learn about details and more features, checkout the xref:usage.adoc[] section.
+If nothing happens, see xref:troubleshooting.adoc[].
 
 == Features
 

@@ -1,0 +1,60 @@
+= Connection to TTS
+
+Tabletop Simulator talks to external editors over two local ports:
+
+* TTS sends messages (loaded scripts, prints, errors) to port *39998*. Only one program at a time can listen there.
+* Editors send commands (Save and Play, Execute Lua) to TTS on port *39999*.
+
+== The gateway helper
+
+By default (xref:settings.adoc#connection[`ttsEditor.connection.mode`] `gateway`), the extension starts a small helper process that listens on port 39998 and lets local programs connect to it on port *39997*.
+The extension, the xref:mcp.adoc[MCP server] and other local tools then all receive TTS messages at the same time.
+
+The helper runs on Node.js from your PATH if there is one, otherwise on your editor's built-in runtime, so you do not need to install anything.
+If it still cannot start, the extension listens on port 39998 itself and shows a warning once. Everything in the editor keeps working; only sharing with other tools is lost.
+
+With connection mode `direct`, the extension always listens on port 39998 itself, like the original extension. If another tool already runs a gateway, the extension joins it instead.
+
+== Status bar
+
+The *TTS Port* item on the right of the status bar shows the connection:
+
+[cols="1,3"]
+|===
+| Text | Meaning (click action)
+
+| TTS Port: gateway
+| Connected through the gateway helper. Click to *Release*.
+
+| TTS Port: 39998
+| Listening on port 39998 directly. Click to *Release*.
+
+| TTS Port: released
+| Not connected. Click to *Claim*.
+
+| TTS Port: error
+| The connection failed or was taken over. Hover for the reason; click to *Claim* again.
+|===
+
+*Release TTS Editor Port* disconnects and stops the helper if this window started it, so another program can use port 39998.
+*Claim TTS Editor Port* connects again.
+Release only ever stops a helper this extension started; it never stops other programs.
+
+== Several editor windows
+
+TTS messages go to one editor window at a time.
+When a second window connects (for example because you opened another folder with Lua files), it takes over, and the first window's status bar shows *TTS Port: error* with "another client ... took over this connection".
+Click the status bar item in the window you want to use to claim the connection back.
+
+If the window that started the helper is closed, the helper stops with it and the other window shows *TTS Port: error*. Click it to claim the connection again; that window then starts its own helper.
+
+== When another program holds port 39998
+
+If another program already listens on port 39998, the helper does not start. On Windows, the *TTS Editor* output names the program and its process ID.
+Common causes:
+
+* The original *Tabletop Simulator Editor* extension, or another TTS extension, is enabled in this or another editor window.
+* Another editor (such as Atom with the TTS plugin) is open.
+
+Disable or close that program, then click the status bar item to claim the port.
+TTS Tools never stops other programs to free the port.
