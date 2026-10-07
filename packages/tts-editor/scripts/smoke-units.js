@@ -4,7 +4,7 @@
  *   node scripts/smoke-units.js
  */
 /* eslint-disable @typescript-eslint/no-require-imports */
-const { luaLongString } = require("../dist/tts/luaString");
+const { luaLongString } = require("../out/tts/luaString");
 const { parseNetstatListeningPids } = require("../../tts-gateway/dist/ports/editorPort");
 
 const assertEq = (actual, expected, label) => {

@@ -447,14 +447,13 @@
   },
   "icon": "media/icon.png",
   "scripts": {
-    "vscode:package": "node -e \"require('fs').mkdirSync(require('path').join(__dirname,'../../dist'),{recursive:true})\" && vsce package -o ../../dist/tts-tools.vsix",
-    "vscode:prepublish": "npm run compile && npm run copy-gateway",
+    "vscode:package": "node -e \"require('fs').mkdirSync(require('path').join(__dirname,'../../dist'),{recursive:true})\" && vsce package --no-dependencies -o ../../dist/tts-tools.vsix",
+    "vscode:prepublish": "npm run compile && npm run bundle",
     "compile": "tsc -p ./",
-    "copy-gateway": "node ./scripts/copy-gateway.js",
-    "smoke:mcp": "node ./scripts/smoke-mcp.js",
+    "bundle": "node ./scripts/bundle.js",
+    "lint": "eslint src --ext ts",
     "smoke": "node ./scripts/smoke-object-type.js && node ./scripts/smoke-units.js && node ./scripts/smoke-mcp.js",
-    "watch": "tsc -watch -p ./",
-    "lint": "eslint src --ext ts"
+    "smoke:mcp": "node ./scripts/smoke-mcp.js"
   },
   "dependencies": {
     "@tts-tools/gateway-client": "file:../gateway-client",
@@ -469,6 +468,7 @@
     "@types/vscode": "^1.96.0",
     "@typescript-to-lua/language-extensions": "^1.19.0",
     "@vscode/vsce": "^4.0.0",
+    "esbuild": "^0.25.12",
     "eslint": "^9.35.0",
     "typescript": "^5.9.2",
     "typescript-eslint": "^8.42.0"

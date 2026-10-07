@@ -6,22 +6,13 @@ import { GATEWAY_CONTROL_PORT, probeControlPort } from "@tts-tools/gateway-clien
 
 let ownedHelper: ChildProcess | undefined;
 
-/**
- * Resolve gateway CLI path: VSIX `dist/tts-gateway-helper/cli.js`, else (running from the repo)
- * `packages/tts-gateway/dist/cli.js`.
- */
+/** The gateway helper is bundled to `dist/tts-gateway-helper/cli.js` by `scripts/bundle.js`. */
 export const resolveGatewayCli = (extensionPath: string): string => {
   const bundled = path.join(extensionPath, "dist", "tts-gateway-helper", "cli.js");
-  if (fs.existsSync(bundled)) {
-    return bundled;
+  if (!fs.existsSync(bundled)) {
+    throw new Error(`The gateway helper is missing at ${bundled}. Rebuild or reinstall the extension.`);
   }
-  const monorepo = path.join(extensionPath, "..", "tts-gateway", "dist", "cli.js");
-  if (fs.existsSync(monorepo)) {
-    return monorepo;
-  }
-  throw new Error(
-    `tts-gateway CLI not found. Expected ${bundled} (rebuild/package the extension) or monorepo packages/tts-gateway/dist/cli.js`
-  );
+  return bundled;
 };
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));

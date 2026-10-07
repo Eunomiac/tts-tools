@@ -35,7 +35,7 @@ Turn on **Compatibility: Behave Like Original** to get the original extension's 
 
 Updating the script state of an object (upstream demo):
 
-<img src="https://raw.githubusercontent.com/Sebaestschjin/tts-tools/master/packages/tts-editor/media/update-state.gif" alt="Preview"/>
+<img src="https://raw.githubusercontent.com/Eunomiac/tts-tools/main/packages/tts-editor/docs/modules/ROOT/images/update-state.gif" alt="Preview"/>
 
 ## Credits & license
 

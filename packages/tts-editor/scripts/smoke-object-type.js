@@ -1,12 +1,12 @@
 /**
  * Smoke checks for TTS Objects Name → icon class mapping (no vscode import).
  * Run from packages/tts-editor after `npm run compile`:
- *   node --experimental-vm-modules -e "require('./dist/tts/objectType.js')"  (use this file instead)
+ *   node --experimental-vm-modules -e "require('./out/tts/objectType.js')"  (use this file instead)
  *
  * Prefer: npm run compile && node scripts/smoke-object-type.js
  */
 /* eslint-disable @typescript-eslint/no-require-imports */
-const { ObjectType, getObjectTypeForName, getObjectType } = require("../dist/tts/objectType");
+const { ObjectType, getObjectTypeForName, getObjectType } = require("../out/tts/objectType");
 
 // ModelType is a const enum inlined by tsc — use numeric values from TTS API.
 const ModelType = { Generic: 0, Figurine: 1, Dice: 2, Coin: 3, Board: 4, Chip: 5, Bag: 6, Infinite: 7 };
