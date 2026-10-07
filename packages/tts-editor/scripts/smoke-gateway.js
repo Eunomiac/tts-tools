@@ -11,7 +11,18 @@ const path = require("node:path");
 const { startGateway } = require("../../tts-gateway/dist");
 const { connectGateway } = require("@tts-tools/gateway-client");
 
-const ports = { editorPort: 49_998, commandPort: 49_999, controlPort: 49_997 };
+/** Windows reserves changing port ranges, so ask the OS for ports that are free right now. */
+const freePort = () =>
+  new Promise((resolve, reject) => {
+    const server = net.createServer();
+    server.on("error", reject);
+    server.listen(0, "127.0.0.1", () => {
+      const { port } = server.address();
+      server.close(() => resolve(port));
+    });
+  });
+
+const ports = {};
 const pidDir = fs.mkdtempSync(path.join(os.tmpdir(), "tts-gateway-smoke-"));
 
 const withTimeout = (promise, ms, what) =>
@@ -57,6 +68,9 @@ const nextEvent = (session, event, predicate = () => true) =>
   });
 
 const main = async () => {
+  ports.editorPort = await freePort();
+  ports.commandPort = await freePort();
+  ports.controlPort = await freePort();
   const fakeTts = await startFakeTts();
   const gateway = await startGateway({ ...ports, pidFile: path.join(pidDir, "gateway.pid") });
   const clientOptions = { ...ports, clientId: "smoke", routeTag: "SMOKE", failover: false };
@@ -91,7 +105,7 @@ const main = async () => {
   console.log("ok   the new client receives events");
 
   await assert.rejects(
-    startGateway({ ...ports, controlPort: ports.controlPort - 10, pidFile: path.join(pidDir, "second.pid") }),
+    startGateway({ ...ports, controlPort: await freePort(), pidFile: path.join(pidDir, "second.pid") }),
     (error) => /already in use/.test(error.message)
   );
   console.log("ok   a held editor port gives a clear error");
