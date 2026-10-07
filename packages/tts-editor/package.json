@@ -19,9 +19,22 @@
   "bugs": {
     "url": "https://github.com/Eunomiac/tts-tools/issues"
   },
-  "license": "SEE LICENSE IN LICENSE",
+  "license": "MIT",
   "categories": [
-    "Other"
+    "Other",
+    "AI"
+  ],
+  "keywords": [
+    "tabletop simulator",
+    "tts",
+    "ttslua",
+    "lua",
+    "xmlui",
+    "external editor",
+    "modding",
+    "tabletop",
+    "board games",
+    "mcp"
   ],
   "activationEvents": [
     "onLanguage:lua",
@@ -446,6 +459,10 @@
     ]
   },
   "icon": "media/icon.png",
+  "galleryBanner": {
+    "color": "#1e293b",
+    "theme": "dark"
+  },
   "scripts": {
     "vscode:package": "node -e \"require('fs').mkdirSync(require('path').join(__dirname,'../../dist'),{recursive:true})\" && vsce package --no-dependencies -o ../../dist/tts-tools.vsix",
     "vscode:prepublish": "npm run compile && npm run bundle",
