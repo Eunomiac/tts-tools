@@ -29,7 +29,7 @@ npm run package
 That builds the libraries and the gateway, type-checks the extension, bundles it with esbuild into `packages/tts-editor/dist/`, and writes **`dist/tts-tools.vsix`**.
 Install it with **Extensions: Install from VSIX…** in VS Code (or `code --install-extension dist/tts-tools.vsix`).
 
-The extension copies the sibling packages into its `node_modules` when installed (`install-links=true`), so after changing a library, rerun `npm run package` (which reinstalls the extension's dependencies) rather than only `npm run build`.
+The extension copies the sibling packages into its `node_modules` when installed (`install-links=true`), and npm does not re-copy them while their version is unchanged. `npm run package` removes those copies and reinstalls them; after changing a library without packaging, run `npm run refresh:editor-deps`.
 
 ## Checks
 

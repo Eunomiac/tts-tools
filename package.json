@@ -9,6 +9,7 @@
     "build:client": "npm run build --prefix packages/gateway-client",
     "build:editor": "npm run compile --prefix packages/tts-editor && npm run bundle --prefix packages/tts-editor",
     "build": "npm run build:libs && npm run build:gateway && npm run build:client && npm run build:editor",
-    "package": "npm run build && npm install --prefix packages/tts-editor && npm run vscode:package --prefix packages/tts-editor"
+    "refresh:editor-deps": "node scripts/refresh-editor-deps.js",
+    "package": "npm run build:libs && npm run build:gateway && npm run build:client && npm run refresh:editor-deps && npm run vscode:package --prefix packages/tts-editor"
   }
 }
