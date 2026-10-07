@@ -31,3 +31,6 @@ out/
 
 # VS Code / Cursor extension packages
 *.vsix
+
+# Private working notes (release audit, drafts)
+.dev/
