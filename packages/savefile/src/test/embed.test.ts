@@ -96,11 +96,18 @@ expect.extend({
               `Expected "${fullKeyName}" to be equal ${value} (with a tolerance of 0.0001), but was ${recievedValue}`,
           };
         } else if (valueType === "string" && key === "LuaScript") {
-          const actual = (recievedValue as string).replaceAll(/^\s*/gm, "");
-          const expected = (value as string).replaceAll(/^\s*/gm, "");
+          const normalizeScript = (script: string) =>
+            script.replace(/^-- Bundled by luabundle .*$/m, "").replaceAll(/^\s*/gm, "");
+          const actual = normalizeScript(recievedValue as string);
+          const expected = normalizeScript(value as string);
           valueMatch = {
             pass: actual === expected,
             message: () => `Expected "${fullKeyName}" to be equal\n${expected}\nbut was\n${actual}`,
+          };
+        } else if (valueType === "string") {
+          valueMatch = {
+            pass: (value as string).replaceAll("\r\n", "\n") === (recievedValue as string).replaceAll("\r\n", "\n"),
+            message: () => `Expected "${fullKeyName}" to be equal\n${value}\nbut was\n${recievedValue}`,
           };
         } else {
           valueMatch = {

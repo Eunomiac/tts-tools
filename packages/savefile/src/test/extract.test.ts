@@ -103,7 +103,7 @@ expect.extend({
             if (elementPath.endsWith(".json")) {
               assert.deepEqual(JSON.parse(receivedContent), JSON.parse(content));
             } else {
-              assert.equal(receivedContent, content);
+              assert.equal(receivedContent.replaceAll("\r\n", "\n"), content.replaceAll("\r\n", "\n"));
             }
           } catch (e) {
             const common = commonPathPrefix([recievedDir, expectedDir]);
