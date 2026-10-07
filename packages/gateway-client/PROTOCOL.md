@@ -28,6 +28,8 @@ Stable wire format for non-JS clients. Prefer `@tts-tools/gateway-client` when y
 
 `routeTag` is optional; if present must match `^[A-Z][A-Z0-9_]{0,31}$`.
 
+`clientId` is unique: registering an id that is already connected replaces the older connection. The gateway sends the older client an `error` (no `requestId`) explaining why, then closes it. Use a per-process id if several copies of your tool may run at once.
+
 ## Gateway → client
 
 ```json
@@ -55,5 +57,5 @@ Stable wire format for non-JS clients. Prefer `@tts-tools/gateway-client` when y
 
 ## Do not
 
-- Kill `TabletopSimulator.exe` when claiming ports.
+- Kill other processes (TTS or another tool) to free a port. If 39998 is taken, report who holds it and let the person close it.
 - Send `executeLua` to 39999 while registered with the gateway and expect the return on your own 39998 socket — use proxied `executeLua` on the control port.

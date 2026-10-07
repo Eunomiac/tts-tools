@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Activation matches the original extension again:** TTS Tools starts in workspaces that contain Lua files (or when you run one of its commands), not in every editor window. Previously every window claimed the TTS connection at startup, so opening an unrelated project could take it away from your mod's window.
+- **Two editor windows:** when a second window connects, the first one now shows "another client ... took over this connection" in its status bar (click to claim it back) instead of silently receiving nothing.
 - The gateway helper never stops other programs. If another program already holds the TTS editor port, the helper names that program in the TTS Editor output and exits instead of closing it. "Release" only stops a helper this extension started.
 
 ## [2.7.0] - 2026-10-07

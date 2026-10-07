@@ -125,7 +125,7 @@ export class Plugin {
         break;
       case "error":
         this.portStatus.text = "$(error) TTS Port: error";
-        this.portStatus.tooltip = detail ?? "Editor port error. Click to retry Claim.";
+        this.portStatus.tooltip = `${detail ?? "Editor port error."}\nClick to Claim the editor port again.`;
         this.portStatus.backgroundColor = new ThemeColor("statusBarItem.errorBackground");
         this.portStatus.command = "ttsEditor.claimEditorPort";
         break;

@@ -91,6 +91,8 @@ class GatewayTransport extends EventEmitter {
   private pending = new Map<number, PendingLua>();
   private heartbeatTimer?: ReturnType<typeof setInterval>;
   private closed = false;
+  /** Last gateway error not tied to a request, e.g. why the gateway is about to drop this client. */
+  private lastGatewayError?: string;
 
   constructor(socket: net.Socket, clientId: string, routeTag: string | undefined, initialBuffer: string) {
     super();
@@ -165,6 +167,7 @@ class GatewayTransport extends EventEmitter {
             return;
           }
         }
+        this.lastGatewayError = message.message;
         return;
       }
       case "event": {
@@ -176,11 +179,12 @@ class GatewayTransport extends EventEmitter {
     }
   }
 
-  private onDisconnected(detail: string): void {
+  private onDisconnected(reason: string): void {
     if (this.closed) {
       return;
     }
     this.closed = true;
+    const detail = this.lastGatewayError ? `${reason}: ${this.lastGatewayError}` : reason;
     if (this.heartbeatTimer) {
       clearInterval(this.heartbeatTimer);
     }

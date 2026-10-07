@@ -24,7 +24,6 @@
     "Other"
   ],
   "activationEvents": [
-    "onStartupFinished",
     "onLanguage:lua",
     "workspaceContains:**/*.lua",
     "workspaceContains:**/*.ttslua"

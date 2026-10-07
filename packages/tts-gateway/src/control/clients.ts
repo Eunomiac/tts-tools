@@ -18,6 +18,11 @@ export class ClientRegistry {
     const existing = this.byId.get(client.clientId);
     if (existing && existing.socket !== client.socket) {
       this.remove(existing.socket);
+      writeControlMessage(existing.socket, {
+        type: "error",
+        message: `another client registered as "${client.clientId}" and took over this connection`,
+      });
+      existing.socket.end();
     }
     this.bySocket.set(client.socket, client);
     this.byId.set(client.clientId, client);
