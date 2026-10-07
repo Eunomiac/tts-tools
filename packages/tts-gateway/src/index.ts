@@ -9,10 +9,7 @@ export * from "./protocol";
 export {
   startGateway,
   defaultPidFilePath,
-  writePidFile,
-  readPidFile,
-  clearPidFile,
   type GatewayOptions,
   type RunningGateway,
 } from "./lifecycle";
-export { reclaimEditorPort, listEditorPortListeners } from "./ports/editorPort";
+export { listEditorPortListeners, type EditorPortListener } from "./ports/editorPort";

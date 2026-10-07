@@ -8,8 +8,7 @@ export type TtsInboundHandler = (message: Record<string, unknown>) => void;
  * Listen on TTS editor port 39998 for inbound External Editor API messages.
  *
  * TTS opens a connection, writes one JSON document (often pretty-printed with
- * newlines), then closes. Match @matanlurey/tts-editor: accumulate until `end`,
- * then parse once — do not split on newlines.
+ * newlines), then closes. Accumulate until `end`, then parse once — do not split on newlines.
  */
 export const listenTtsInbound = (
   onMessage: TtsInboundHandler,

@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `.ttslua` files open as Lua (syntax highlighting and Lua tooling) without a `files.associations` setting.
 
+### Fixed
+
+- **Update Object State** works on macOS and Linux (the file name was only recognized with Windows path separators), and script states containing `]]` no longer break the generated Lua.
+
+### Changed
+
+- The gateway helper never stops other programs. If another program already holds the TTS editor port, the helper names that program in the TTS Editor output and exits instead of closing it. "Release" only stops a helper this extension started.
+
 ## [2.7.0] - 2026-10-07
 
 First public preview of the community fork (`eunomiac.tts-tools`). Includes every change since the original extension's 2.1.3; version numbers in parentheses mark when each change landed in the fork.

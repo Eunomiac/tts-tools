@@ -1,6 +1,8 @@
+import * as path from "node:path";
 import { window } from "vscode";
 
 import { Plugin } from "../plugin";
+import { luaLongString } from "../tts/luaString";
 import type { TTSAdapter } from "../ttsAdapter";
 
 export default (plugin: Plugin, adapter: TTSAdapter) => async () => {
@@ -10,7 +12,7 @@ export default (plugin: Plugin, adapter: TTSAdapter) => async () => {
   }
 
   const document = window.activeTextEditor.document;
-  const fileNameMatch = document.fileName.match(/\\([^\\]+)\.state\.txt$/);
+  const fileNameMatch = path.basename(document.fileName).match(/^(.+)\.state\.txt$/);
   if (!fileNameMatch) {
     window.showErrorMessage("The current text editor is not an object state file");
     return;
@@ -34,9 +36,8 @@ if not object or object.isDestroyed() then
   error("The object with GUID ${object.guid} doesn't exist")
 end
 
-object.script_state = [[${state}]]
+object.script_state = ${luaLongString(state)}
 object.reload()`;
 
-  console.log(command);
   adapter.executeCode(command);
 };

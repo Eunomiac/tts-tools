@@ -64,7 +64,8 @@ const getSession = async (): Promise<GatewaySession> => {
     sessionPromise = undefined;
     throw new Error(
       `TTS gateway is not running (${error instanceof Error ? error.message : error}). ` +
-        "Open a workspace with the TTS Tools extension active, or run “TTS Editor: Claim TTS Editor Port”."
+        "Open a workspace with the TTS Tools extension active and `ttsEditor.connection.mode` set to `gateway`, " +
+        "or run “TTS Editor: Claim TTS Editor Port”."
     );
   }
 };

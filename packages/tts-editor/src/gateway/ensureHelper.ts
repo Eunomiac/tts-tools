@@ -1,25 +1,14 @@
 import { spawn, type ChildProcess } from "node:child_process";
 import * as fs from "node:fs";
-import * as os from "node:os";
 import * as path from "node:path";
 
 import { GATEWAY_CONTROL_PORT, probeControlPort } from "@tts-tools/gateway-client";
 
-export type HelperPaths = {
-  /** Absolute path to gateway cli.js (bundled in VSIX or monorepo dist). */
-  cliJs: string;
-  pidFile: string;
-};
-
 let ownedHelper: ChildProcess | undefined;
 
-export const defaultPidFilePath = (): string => {
-  const base = process.env.LOCALAPPDATA ?? path.join(os.homedir(), ".local", "state");
-  return path.join(base, "tts-tools", "gateway.pid");
-};
-
 /**
- * Resolve gateway CLI path: VSIX `dist/tts-gateway-helper/cli.js`, else monorepo `packages/tts-gateway/dist/cli.js`.
+ * Resolve gateway CLI path: VSIX `dist/tts-gateway-helper/cli.js`, else (running from the repo)
+ * `packages/tts-gateway/dist/cli.js`.
  */
 export const resolveGatewayCli = (extensionPath: string): string => {
   const bundled = path.join(extensionPath, "dist", "tts-gateway-helper", "cli.js");
@@ -29,11 +18,6 @@ export const resolveGatewayCli = (extensionPath: string): string => {
   const monorepo = path.join(extensionPath, "..", "tts-gateway", "dist", "cli.js");
   if (fs.existsSync(monorepo)) {
     return monorepo;
-  }
-  // Dev: extensionPath is packages/tts-editor
-  const sibling = path.join(extensionPath, "..", "..", "packages", "tts-gateway", "dist", "cli.js");
-  if (fs.existsSync(sibling)) {
-    return sibling;
   }
   throw new Error(
     `tts-gateway CLI not found. Expected ${bundled} (rebuild/package the extension) or monorepo packages/tts-gateway/dist/cli.js`

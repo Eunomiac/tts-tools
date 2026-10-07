@@ -464,7 +464,7 @@ class ManagedGatewaySession extends EventEmitter implements GatewaySession {
     this.switching = true;
     try {
       this.unbindInner();
-      // Prefer gateway (often the force-claimer); else try direct again; else disconnected.
+      // Prefer a gateway that took over the port; else try direct again; else disconnected.
       const gatewayUp = await probeControlPort(this.options.controlPort, 400);
       if (gatewayUp) {
         try {

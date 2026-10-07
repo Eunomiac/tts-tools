@@ -35,6 +35,7 @@ import {
 } from "./message";
 import { LoadedObject } from "./model/objectData";
 import { Plugin } from "./plugin";
+import { luaLongString } from "./tts/luaString";
 import {
   CustomMessage,
   ErrorMessage,
@@ -379,15 +380,12 @@ export class TTSAdapter {
         includePath: configuration.xmlIncludePaths(),
       });
 
-      let newData = JSON.stringify(bundled);
-      newData = newData.replace(/\]\]/g, ']] .. "]]" .. [[');
-
       const script = `
 local obj = getObjectFromGUID("${object.guid}")
 obj.destruct()
 
 spawnObjectJSON({
-  json = [[${newData}]]
+  json = ${luaLongString(JSON.stringify(bundled))}
 })
 `;
 
@@ -786,10 +784,11 @@ return nil
           script: lua,
           ui: xml,
         });
-      } catch (error: any) {
-        console.error(error.stack);
-        if (error.message) {
-          errors.add(error.message);
+      } catch (error) {
+        console.error(error instanceof Error ? error.stack : error);
+        const message = error instanceof Error ? error.message : String(error);
+        if (message) {
+          errors.add(message);
         }
       }
     }

@@ -5,7 +5,7 @@ import * as path from "node:path";
 
 import { GATEWAY_CONTROL_PORT, TTS_COMMAND_PORT, TTS_EDITOR_PORT } from "./constants";
 import { startControlServer, type ControlServer } from "./control/server";
-import { reclaimEditorPort } from "./ports/editorPort";
+import { listEditorPortListeners } from "./ports/editorPort";
 import { listenTtsInbound } from "./ports/ttsInbound";
 
 export type GatewayOptions = {
@@ -30,22 +30,12 @@ export const defaultPidFilePath = (): string => {
   return path.join(base, "tts-tools", "gateway.pid");
 };
 
-export const writePidFile = (pidFile: string, pid: number): void => {
+const writePidFile = (pidFile: string, pid: number): void => {
   fs.mkdirSync(path.dirname(pidFile), { recursive: true });
   fs.writeFileSync(pidFile, String(pid), "utf8");
 };
 
-export const readPidFile = (pidFile: string): number | undefined => {
-  try {
-    const raw = fs.readFileSync(pidFile, "utf8").trim();
-    const pid = Number(raw);
-    return Number.isInteger(pid) && pid > 0 ? pid : undefined;
-  } catch {
-    return undefined;
-  }
-};
-
-export const clearPidFile = (pidFile: string): void => {
+const clearPidFile = (pidFile: string): void => {
   try {
     fs.unlinkSync(pidFile);
   } catch {
@@ -53,24 +43,17 @@ export const clearPidFile = (pidFile: string): void => {
   }
 };
 
+const describePortInUse = async (port: number): Promise<string> => {
+  const holders = (await listEditorPortListeners(port)).map((listener) => `${listener.name} (pid ${listener.pid})`);
+  const heldBy = holders.length > 0 ? ` by ${holders.join(", ")}` : " by another program";
+  return `TTS editor port ${port} is already in use${heldBy}. Close that program or release the port in it, then try again.`;
+};
+
 export const startGateway = async (options: GatewayOptions = {}): Promise<RunningGateway> => {
   const editorPort = options.editorPort ?? TTS_EDITOR_PORT;
   const commandPort = options.commandPort ?? TTS_COMMAND_PORT;
   const controlPort = options.controlPort ?? GATEWAY_CONTROL_PORT;
   const pidFile = options.pidFile ?? defaultPidFilePath();
-
-  if (process.platform === "win32") {
-    const reclaim = await reclaimEditorPort(process.pid, editorPort);
-    if (reclaim.killed.length > 0) {
-      console.log(
-        `[tts-gateway] reclaimed 39998 from: ${reclaim.killed.map((k) => `${k.name}(${k.pid})`).join(", ")}`
-      );
-    }
-    if (reclaim.leftover.some((l) => l.pid !== process.pid)) {
-      const names = reclaim.leftover.map((l) => `${l.name}(${l.pid})`).join(", ");
-      throw new Error(`Cannot bind editor port ${editorPort}; still held by: ${names}`);
-    }
-  }
 
   let control: ControlServer | undefined;
   let editorServer: net.Server | undefined;
@@ -111,6 +94,9 @@ export const startGateway = async (options: GatewayOptions = {}): Promise<Runnin
     editorServer = await listenTtsInbound(control.handleTtsInbound, editorPort);
   } catch (error) {
     await control.close();
+    if ((error as NodeJS.ErrnoException).code === "EADDRINUSE") {
+      throw new Error(await describePortInUse(editorPort));
+    }
     throw error;
   }
 
