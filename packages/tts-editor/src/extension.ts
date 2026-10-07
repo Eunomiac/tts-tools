@@ -67,7 +67,7 @@ export function activate(context: ExtensionContext) {
     registerCommand("executeCode", executeScript(adapter));
     registerCommand("showOutput", showOutput(plugin));
     registerCommand("goToLastError", goToLastError(adapter));
-    registerCommand("showView", showView(view));
+    registerCommand("showView", showView);
     registerCommand("updateView", () => viewProvider.refresh());
     registerCommand("openBundledScript", openBundledScript);
     registerCommand("createUi", createUi(plugin));

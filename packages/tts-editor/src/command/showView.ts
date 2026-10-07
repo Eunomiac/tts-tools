@@ -1,6 +1,3 @@
-import { TreeView } from "vscode";
-import { TTSItem } from "../view/ttsObjectTreeProvider";
+import { commands } from "vscode";
 
-export default (view: TreeView<TTSItem>) => () => {
-  view.reveal(null as any);
-};
+export default () => commands.executeCommand("ttsEditor.objectView.focus");

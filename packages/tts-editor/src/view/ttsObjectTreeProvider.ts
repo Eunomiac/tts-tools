@@ -44,11 +44,6 @@ export class TTSObjectTreeProvider implements TreeDataProvider<TTSItem> {
     }
   }
 
-  // Just required to make the showView command possible. Doesn't actually work
-  getParent(_: TTSItem): ProviderResult<TTSItem> {
-    return null;
-  }
-
   refresh(): void {
     this._onDidChangeTreeData.fire();
   }
@@ -80,7 +75,7 @@ export class TTSObjectTreeProvider implements TreeDataProvider<TTSItem> {
     const elements = [];
 
     if (!element.object.isGlobal) {
-      elements.push(new TTSFiletItem(element.object, "Data", "data.json"));
+      elements.push(new TTSFileItem(element.object, "Data", "data.json"));
     }
 
     elements.push(new TTSScriptItem(element.object, "Script", "lua"));
@@ -92,7 +87,7 @@ export class TTSObjectTreeProvider implements TreeDataProvider<TTSItem> {
   }
 }
 
-export type TTSItem = TTSObjectItem | TTSScriptItem | TTSFiletItem;
+export type TTSItem = TTSObjectItem | TTSScriptItem | TTSFileItem;
 
 export class TTSObjectItem extends TreeItem {
   public readonly object: LoadedObject;
@@ -123,7 +118,7 @@ export class TTSObjectItem extends TreeItem {
   };
 }
 
-export class TTSFiletItem extends TreeItem {
+export class TTSFileItem extends TreeItem {
   public readonly object: LoadedObject;
   private extension: string;
 
@@ -145,7 +140,7 @@ export class TTSFiletItem extends TreeItem {
   protected fileName = () => `${this.object.fileName}.${this.extension}`;
 }
 
-export class TTSScriptItem extends TTSFiletItem {
+export class TTSScriptItem extends TTSFileItem {
   constructor(object: LoadedObject, name: string, extension: string) {
     super(object, name, extension);
     this.contextValue = "script";

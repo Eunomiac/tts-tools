@@ -26,8 +26,8 @@ type SetRegularLoadedObject = Omit<RegularLoadedObject, "hasUi">;
 type SetGlobalLoadedObject = Omit<GlobalLoadedObject, "guid" | "hasUi">;
 
 interface GlobalObjectData {
-  LuaScript: string; // eslint-disable-line @typescript-eslint/naming-convention
-  XmlUI?: string; // eslint-disable-line @typescript-eslint/naming-convention
+  LuaScript: string;
+  XmlUI?: string;
 }
 
 export interface ObjectFile extends ObjectInfo {
