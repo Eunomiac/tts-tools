@@ -63,6 +63,26 @@ const writeThirdPartyLicenses = (inputs) => {
   return packages.size;
 };
 
+/** Files that bundled libraries read from their own folder at run time, which becomes dist/. */
+const runtimeAssets = [{ from: path.join(root, "node_modules", "luabundle", "bundle", "runtime.lua"), to: "runtime.lua" }];
+
+const copyRuntimeAssets = () => {
+  for (const asset of runtimeAssets) {
+    fs.copyFileSync(asset.from, path.join(dist, asset.to));
+  }
+};
+
+/** Fail when a bundle reads a `__dirname`-relative file that is not in dist/. */
+const checkDirnameReads = (outFile) => {
+  const code = fs.readFileSync(outFile, "utf8");
+  for (const match of code.matchAll(/__dirname\s*,\s*["'`]([^"'`]+)["'`]/g)) {
+    const target = path.resolve(path.dirname(outFile), match[1]);
+    if (!fs.existsSync(target)) {
+      throw new Error(`${path.relative(root, outFile)} reads ${match[1]} next to itself, but ${path.relative(root, target)} does not exist.`);
+    }
+  }
+};
+
 const main = async () => {
   fs.rmSync(dist, { recursive: true, force: true });
 
@@ -87,6 +107,11 @@ const main = async () => {
     }
     const size = fs.statSync(entry.out).size;
     console.log(`${path.relative(root, entry.out)}  ${(size / 1024).toFixed(0)} KB`);
+  }
+
+  copyRuntimeAssets();
+  for (const entry of entries) {
+    checkDirnameReads(entry.out);
   }
 
   const count = writeThirdPartyLicenses(inputs);

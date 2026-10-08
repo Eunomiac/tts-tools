@@ -84,10 +84,11 @@ export class FileHandler {
   }
 }
 
+/** `__dirname` is the extension's `dist/` folder once bundled. */
 export const iconPath = (name: string) => {
   return {
-    light: Uri.joinPath(Uri.file(__filename), "..", "..", "..", "media", "icon", `${name}.png`),
-    dark: Uri.joinPath(Uri.file(__filename), "..", "..", "..", "media", "icon", `${name}-dark.png`),
+    light: Uri.joinPath(Uri.file(__dirname), "..", "media", "icon", `${name}.png`),
+    dark: Uri.joinPath(Uri.file(__dirname), "..", "media", "icon", `${name}-dark.png`),
   };
 };
 
