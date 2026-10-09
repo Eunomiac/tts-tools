@@ -42,13 +42,6 @@ export class FileHandler {
     return writeFile(outputUri, fileName, content);
   };
 
-  fileExists = async (file: Uri) => {
-    return workspace.fs.stat(file).then(
-      () => true,
-      () => false
-    );
-  };
-
   private checkFile(fileUri: Uri, fileName?: string) {
     const fullUri = fileName ? Uri.joinPath(fileUri, `/${fileName}`) : fileUri;
     if (!this.isInWorkspace(fullUri)) {
@@ -173,7 +166,7 @@ const readWorkspaceFile = async (directory: Uri, fileName: string): Promise<stri
   );
 };
 
-const readFile = async (file: Uri) =>
+export const readFile = async (file: Uri) =>
   workspace.fs
     .readFile(file)
     .then(Buffer.from)

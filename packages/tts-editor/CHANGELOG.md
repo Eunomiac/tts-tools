@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.0] - 2026-10-09
+
+### Fixed
+
+- **Go To Error** did nothing for errors spanning several lines, which TTS reports as `(line,column-line,column)` (common for multi-line `error(...)` calls). It also failed silently whenever it could not open a location; it now says why.
+- **Go To Error** finds modules stored as `name/index.lua`, the same way bundling does.
+
+### Changed
+
+- **Go To Error** follows the failing line when the file was edited after the last Save and Play, using the surrounding lines to tell apart repeated lines such as `end`. When the line cannot be found reliably, it opens the bundled copy TTS ran at the exact line.
+- No **Go To Error** button for errors without a line number or for code run with Execute Lua (including MCP agents), since there is no file to open.
+
 ## [3.0.3] - 2026-10-08
 
 ### Fixed

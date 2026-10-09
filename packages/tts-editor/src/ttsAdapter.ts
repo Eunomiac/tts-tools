@@ -1,6 +1,6 @@
 import { connectGateway, type GatewaySession } from "@tts-tools/gateway-client";
 import { TTSObject as SaveFileObject, bundleObject, unbundleObject } from "@tts-tools/savefile";
-import { Range, Uri, window, workspace } from "vscode";
+import { Position, Range, Uri, window, workspace } from "vscode";
 
 import { command } from "./command";
 import configuration from "./configuration";
@@ -13,10 +13,11 @@ import {
   findNearestBundle,
   getRootName,
   isBundled,
+  resolveModule,
   unbundleLua,
   unbundleXml,
 } from "./io/bundle";
-import { getOutputFileUri, getOutputPath, OutputType, readOutputFile, writeOutputFile } from "./io/files";
+import { getOutputFileUri, getOutputPath, OutputType, readFile, readOutputFile, writeOutputFile } from "./io/files";
 import { ImportMutex } from "./io/importMutex";
 import {
   clearOutputFolders,
@@ -35,6 +36,7 @@ import {
 } from "./message";
 import { LoadedObject } from "./model/objectData";
 import { Plugin } from "./plugin";
+import { ErrorLocation, isExecutedSnippet, parseErrorLocation, reanchorLine } from "./tts/errorLocation";
 import { luaLongString } from "./tts/luaString";
 import {
   CustomMessage,
@@ -547,13 +549,43 @@ spawnObjectJSON({
     this.lastError = message;
     this.plugin.info(`${message.guid} ${message.errorMessagePrefix}`);
 
-    const action = await window.showErrorMessage(`${message.errorMessagePrefix}`, "Go To Error");
+    const location = this.errorLocation(message);
+    if (!location || isExecutedSnippet(location)) {
+      window.showErrorMessage(message.errorMessagePrefix);
+      return;
+    }
+
+    const action = await window.showErrorMessage(message.errorMessagePrefix, "Go To Error");
     if (action === "Go To Error") {
       this.goToError(message);
     }
   };
 
+  private errorLocation = (message: ErrorMessage): ErrorLocation | undefined =>
+    parseErrorLocation(message.errorMessagePrefix) ?? parseErrorLocation(message.error);
+
   private goToError = async (message: ErrorMessage) => {
+    try {
+      await this.showErrorLocation(message);
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      window.showErrorMessage(`Could not open the error location: ${reason}`);
+    }
+  };
+
+  private showErrorLocation = async (message: ErrorMessage) => {
+    const location = this.errorLocation(message);
+    if (!location) {
+      window.showWarningMessage("This error does not say which line it came from, so there is nothing to open.");
+      return;
+    }
+    if (isExecutedSnippet(location)) {
+      window.showWarningMessage(
+        "This error came from code run with Execute Lua (for example by an AI agent), which is not saved in any file."
+      );
+      return;
+    }
+
     const object = this.plugin.getLoadedObject(message.guid);
     if (!object) {
       window.showWarningMessage(
@@ -563,77 +595,65 @@ spawnObjectJSON({
     }
 
     const fileName = `${object.fileName}.lua`;
+    const bundledFile = getOutputFileUri(fileName, "bundle");
     const source = await readOutputFile(fileName, "bundle");
     if (!source) {
       window.showWarningMessage(`Can not find the script file for object ${object.guid}`);
       return;
     }
 
-    const range = this.getRange(message.errorMessagePrefix);
     let fileToShow = getOutputFileUri(fileName);
+    let moduleStart = 0;
 
     if (isBundled(source)) {
-      const bundleInfo = await findNearestBundle(source, range.line);
-      if (bundleInfo) {
-        const { name: bundleName, offset } = bundleInfo;
-        if (getRootName(source) === bundleName) {
-          // the output file is the one we need, but we need to adjust the line number
-          range.line -= offset;
-        } else {
-          const bundleFile = await this.findBundleFile(bundleName);
-          if (bundleFile) {
-            range.line -= offset;
-            fileToShow = bundleFile;
-          } else {
-            window.showWarningMessage(
-              `Tried to find file for ${bundleName} but couldn't locate it. Will open the bundled version instead.`
-            );
-            fileToShow = getOutputFileUri(fileName, "bundle");
-          }
+      const bundleInfo = await findNearestBundle(source, location.startLine);
+      if (!bundleInfo) {
+        // The error is in luabundle's own loader code at the top of the bundled script.
+        await this.revealLocation(bundledFile, location, 0);
+        return;
+      }
+      moduleStart = bundleInfo.offset;
+      if (getRootName(source) !== bundleInfo.name) {
+        const moduleFile = this.findBundleFile(bundleInfo.name);
+        if (!moduleFile) {
+          window.showWarningMessage(
+            `Could not find the file for module '${bundleInfo.name}' in the include paths. Opening the bundled script instead.`
+          );
+          await this.revealLocation(bundledFile, location, 0);
+          return;
         }
-      } else {
-        window.showWarningMessage(
-          `Tried to identify the bundle name for ${fileName} but couldn't determine it. Will open the bundled version instead.`
-        );
-        fileToShow = getOutputFileUri(fileName, "bundle");
+        fileToShow = moduleFile;
       }
     }
 
-    window.showTextDocument(fileToShow, {
-      selection: new Range(range.line - 1, range.start, range.line - 1, range.end),
-    });
-  };
-
-  private getRange = (errorMessage: string): { line: number; start: number; end: number } => {
-    const rangeExpression = /.*:\((\d+),(\d+)-(\d+)\):/;
-    const range = errorMessage.match(rangeExpression);
-    if (range) {
-      const [_, line, start, end] = range;
-      return { line: Number(line), start: Number(start), end: Number(end) };
+    const fileText = await readFile(fileToShow).catch(() => undefined);
+    const line =
+      fileText === undefined
+        ? undefined
+        : reanchorLine(source.split("\n"), location.startLine, fileText.split("\n"), location.startLine - moduleStart);
+    if (line === undefined) {
+      window.showWarningMessage(
+        `The failing line is no longer in ${workspace.asRelativePath(fileToShow)} (edited since the last Save & Play?). ` +
+          "Opening the bundled script TTS ran instead."
+      );
+      await this.revealLocation(bundledFile, location, 0);
+      return;
     }
 
-    return { line: 0, start: 0, end: 0 };
+    await this.revealLocation(fileToShow, location, location.startLine - line);
   };
 
-  /**
-   * Searches for a Lua scipt for the given bundle name in the current workspace (respecting the inlcude path settings).
-   *
-   * @param name The full name of the bundle
-   * @returns The `Uri` to the bundle file or `undefined` if it can not be found.
-   */
-  private findBundleFile = async (name: string): Promise<Maybe<Uri>> => {
-    name = name.replace(/\./g, "/");
-    this.plugin.debug(`Base file name: ${name}`);
-    for (const path of configuration.luaIncludePaths()) {
-      const fileName = path.replace("?", name);
-      const fileUri = Uri.file(fileName);
-      this.plugin.debug(`Looking for file ${fileUri}`);
-      if (await this.plugin.fileHandler.fileExists(fileUri)) {
-        return fileUri;
-      }
-    }
+  /** Opens `file` with the error selected, `lineShift` lines above where TTS reported it. */
+  private revealLocation = async (file: Uri, location: ErrorLocation, lineShift: number) => {
+    const start = new Position(Math.max(location.startLine - lineShift - 1, 0), location.startColumn);
+    const end = new Position(Math.max(location.endLine - lineShift - 1, 0), location.endColumn);
+    await window.showTextDocument(file, { selection: new Range(start, end) });
+  };
 
-    return undefined;
+  /** Finds the source file of a bundled module, resolving `require` names the same way bundling does. */
+  private findBundleFile = (name: string): Maybe<Uri> => {
+    const filePath = resolveModule(name, configuration.luaIncludePaths());
+    return filePath ? Uri.file(filePath) : undefined;
   };
 
   private onCustomMessage = async (customMessage: CustomMessage) => {

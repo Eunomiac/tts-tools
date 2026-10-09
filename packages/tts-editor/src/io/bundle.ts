@@ -73,7 +73,8 @@ export const bundleXml = async (script: string, includePaths: string[]): Promise
   return bundle(script, includePaths);
 };
 
-const resolveModule = (name: string, packagePaths: readonly string[]) => {
+/** Resolves a `require` name to a file the same way bundling does (`?` patterns, then `?/index`). */
+export const resolveModule = (name: string, packagePaths: readonly string[]) => {
   const platformName = name.replace(/\./g, pathSeparator);
 
   for (const pattern of packagePaths) {
@@ -84,7 +85,6 @@ const resolveModule = (name: string, packagePaths: readonly string[]) => {
     }
 
     const indexPath = pattern.replace(/\?/g, `${platformName}${pathSeparator}index`);
-    console.log(indexPath);
     if (existsSync(indexPath) && lstatSync(indexPath).isFile()) {
       return indexPath;
     }
