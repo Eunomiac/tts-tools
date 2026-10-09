@@ -5,6 +5,16 @@
 Edit [Tabletop Simulator](https://www.tabletopsimulator.com/) scripts and XML UI in VS Code or Cursor, using TTS's [External Editor API](https://api.tabletopsimulator.com/externaleditorapi/).
 Unofficial; not affiliated with or endorsed by Berserk Games.
 
+> ### New in 3.1.0: Go To Error finally works
+>
+> The **Go To Error** button on TTS error pop-ups has rarely worked, in this fork and in the original extension alike. It now opens the right file at the right line:
+>
+> - Errors that span several lines (most multi-line `error(...)` calls) used to make the button do nothing. They now open correctly.
+> - If you edited the file after the last Save and Play, it still finds the failing line where it moved to.
+> - When it cannot open a location, it tells you why instead of silently doing nothing.
+>
+> [How Go To Error finds the line](https://eunomiac.github.io/tts-tools/editor/latest/errors.html)
+
 > **Fork notice:** This is a community-maintained fork of Sebastian Stern's [TTS Editor](https://github.com/Sebaestschjin/tts-tools) (`sebaestschjin.tts-editor`).
 > It adds the changes listed under [Differences from the original](#differences-from-the-original) and keeps a one-click switch back to the original behavior.
 > Install only one of the two extensions at a time: both use the same TTS editor port and the same command IDs.
@@ -23,6 +33,7 @@ Unofficial; not affiliated with or endorsed by Berserk Games.
 
 - Get scripts and XML UI from TTS
 - Send scripts and XML UI back to TTS (while also bundling `require()` and `<Include>`)
+- Jump from a TTS error straight to the failing line in your source files
 - Execute Lua from an open file in the running game
 - Get the current UI of an object as a file
 - Get and update the script state of an object

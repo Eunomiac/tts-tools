@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [3.1.0] - 2026-10-09
 
+**Highlight: Go To Error finally works.** The button on TTS error pop-ups has rarely worked, in the original extension too; it now opens the right file at the right line.
+
 ### Fixed
 
 - **Go To Error** did nothing for errors spanning several lines, which TTS reports as `(line,column-line,column)` (common for multi-line `error(...)` calls). It also failed silently whenever it could not open a location; it now says why.

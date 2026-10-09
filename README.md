@@ -4,6 +4,8 @@
 
 A community-maintained fork of [Sebaestschjin/tts-tools](https://github.com/Sebaestschjin/tts-tools) by Sebastian Stern: a VS Code extension and supporting libraries for scripting [Tabletop Simulator](https://www.tabletopsimulator.com/) mods through its External Editor API.
 
+**New in 3.1.0:** the long-broken **Go To Error** button now opens the right file and line. See the [changelog](packages/tts-editor/CHANGELOG.md).
+
 **Credit:** the original TTS Editor extension and the `savefile` / `xmlbundle` libraries are by Sebastian Stern. See [`packages/tts-editor/NOTICE`](packages/tts-editor/NOTICE) and [`packages/tts-editor/LICENSE`](packages/tts-editor/LICENSE).
 
 ## Layout
