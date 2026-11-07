@@ -9,7 +9,14 @@ const os = require("node:os");
 const path = require("node:path");
 const { luaLongString } = require("../out/tts/luaString");
 const { isExecutedSnippet, parseErrorLocation, reanchorLine } = require("../out/tts/errorLocation");
-const { bundleLua, findNearestBundle, getRootName, resolveModule } = require("../out/io/bundle");
+const {
+  bundleLua,
+  findNearestBundle,
+  getRootName,
+  looksLikeLuabundlePayload,
+  resolveModule,
+  unbundleRootModule,
+} = require("../out/io/bundle");
 const { parseNetstatListeningPids } = require("../../tts-gateway/dist/ports/editorPort");
 
 const assertEq = (actual, expected, label) => {
@@ -97,6 +104,14 @@ const main = async () => {
     assertEq(getRootName(bundled), "__root", "getRootName");
     assertEq(resolveModule("lib.thing", includePaths), path.join(dir, "lib", "thing.lua"), "resolveModule file");
     assertEq(resolveModule("lib.pkg", includePaths), path.join(dir, "lib", "pkg", "index.lua"), "resolveModule index");
+
+    assertEq(looksLikeLuabundlePayload(bundled), true, "looksLikeLuabundlePayload bundled");
+    assertEq(looksLikeLuabundlePayload('require("core.global_script")\n'), false, "looksLikeLuabundlePayload stub");
+    const root = unbundleRootModule(bundled);
+    assertEq(looksLikeLuabundlePayload(root), false, "unbundleRootModule not still bundled");
+    if (!root.includes("require('lib.thing')") && !root.includes('require("lib.thing")')) {
+      throw new Error(`unbundleRootModule root missing require: ${JSON.stringify(root)}`);
+    }
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }

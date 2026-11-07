@@ -11,17 +11,47 @@ import { UnbundledData } from "luabundle";
  */
 export const isBundled = (content: string): boolean => readMetadata(content) !== null;
 
+/**
+ * Heuristic for a luabundle payload even when the metadata comment is missing/corrupt.
+ * Used to refuse writing already-bundled scripts into `objects/` (which breaks Save & Play).
+ */
+export const looksLikeLuabundlePayload = (content: string): boolean => {
+  if (typeof content !== "string" || content.length === 0) {
+    return false;
+  }
+  if (isBundled(content)) {
+    return true;
+  }
+  const head = content.slice(0, 800);
+  return (
+    /--\s*Bundled by luabundle/.test(head) ||
+    /\blocal\s+__bundle_require\b/.test(head) ||
+    /\b__bundle_require\s*,/.test(head)
+  );
+};
+
 export const unbundleLua = (content: string): UnbundledData => {
   return luabundle.unbundleString(content);
 };
 
+/**
+ * Returns the root module source. If `content` looks like a luabundle, always attempts
+ * unbundle (including when metadata is missing). Never returns a still-bundled payload.
+ */
 export const unbundleRootModule = (content: string) => {
-  if (isBundled(content)) {
-    const unbundled = luabundle.unbundleString(content, { rootOnly: true });
-    return unbundled.modules[unbundled.metadata.rootModuleName].content;
+  if (!looksLikeLuabundlePayload(content)) {
+    return content;
   }
 
-  return content;
+  const unbundled = luabundle.unbundleString(content, { rootOnly: true });
+  const root = unbundled.modules[unbundled.metadata.rootModuleName]?.content;
+  if (typeof root !== "string") {
+    throw new Error("unbundleRootModule: bundled script has no root module content");
+  }
+  if (looksLikeLuabundlePayload(root)) {
+    throw new Error("unbundleRootModule: root module still looks like a luabundle payload");
+  }
+  return root;
 };
 
 export const bundleLua = async (script: string, includePaths: string[]): Promise<string> => {

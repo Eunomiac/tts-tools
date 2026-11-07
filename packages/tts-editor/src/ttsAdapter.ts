@@ -13,8 +13,10 @@ import {
   findNearestBundle,
   getRootName,
   isBundled,
+  looksLikeLuabundlePayload,
   resolveModule,
   unbundleLua,
+  unbundleRootModule,
   unbundleXml,
 } from "./io/bundle";
 import { getOutputFileUri, getOutputPath, OutputType, readFile, readOutputFile, writeOutputFile } from "./io/files";
@@ -774,11 +776,30 @@ return nil
         this.plugin.debug(`Reading object files ${object.fileName}`);
         const fromBundledLua = await readOutputFile(`${object.fileName}.lua`, "bundle");
         const fromBundledXml = await readOutputFile(`${object.fileName}.xml`, "bundle");
-        const fromObjectsLua = await readOutputFile(`${object.fileName}.lua`, "script");
+        let fromObjectsLua = await readOutputFile(`${object.fileName}.lua`, "script");
         const fromObjectsXml = await readOutputFile(`${object.fileName}.xml`, "script");
 
         let lua = "";
         let xml = "";
+
+        // Heal a poisoned objects/Global.lua (full luabundle written by an older sync path).
+        // Re-bundling that file as-is freezes the extension host and drops the gateway.
+        if (object.isGlobal && fromObjectsLua && looksLikeLuabundlePayload(fromObjectsLua)) {
+          try {
+            const root = unbundleRootModule(fromObjectsLua);
+            fromObjectsLua = root;
+            await writeOutputFile(`${object.fileName}.lua`, root, "script");
+            this.plugin.info(
+              "Healed objects/Global.lua: replaced a luabundle payload with the unbundled root module before Save & Play."
+            );
+          } catch (healError) {
+            errors.add(
+              `objects/Global.lua looks like a luabundle and could not be healed (${healError}). ` +
+                `Restore it to require("core.global_script") (or your Global stub) and try again.`
+            );
+            continue;
+          }
+        }
 
         // Preserved Global stubs are always rebundled from their include files, even for
         // "Save and Play (Bundled)", because the bundled copy would not contain edits to those files.

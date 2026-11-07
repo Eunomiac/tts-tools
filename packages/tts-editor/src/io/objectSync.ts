@@ -1,7 +1,7 @@
 import { TTSObject as SaveFileObject, unbundleObject } from "@tts-tools/savefile";
 import { FileType, Uri, window, workspace } from "vscode";
 
-import { unbundleRootModule, unbundleXml } from "./bundle";
+import { looksLikeLuabundlePayload, unbundleRootModule, unbundleXml } from "./bundle";
 import { getOutputFileUri, getOutputPath, hasOutputFile, readOutputFile, writeOutputFile } from "./files";
 import { Plugin } from "../plugin";
 import { IncomingJsonObject, OutgoingJsonObject } from "../tts/externalEditorApi";
@@ -47,6 +47,10 @@ const getUnbundledLua = (script: string): string => {
     return unbundleRootModule(script);
   } catch (e) {
     console.error(e);
+    // Never fall back to writing a raw luabundle into objects/ — that poisons Save & Play.
+    if (looksLikeLuabundlePayload(script)) {
+      throw e instanceof Error ? e : new Error(String(e));
+    }
     return script;
   }
 };
@@ -176,7 +180,21 @@ export const reconcileObjectsFromState = async (deps: ObjectSyncDeps, request: O
     if (script !== undefined) {
       await writeIfChanged(`${fileName}.lua`, script, "bundle");
       if (mode !== "echo" && !(await isPreservedStub("lua", looksLikeLuaRequireStub))) {
-        await writeIfChanged(`${fileName}.lua`, getUnbundledLua(script), "script");
+        try {
+          const unbundled = getUnbundledLua(script);
+          if (looksLikeLuabundlePayload(unbundled)) {
+            const msg =
+              "Refusing to write a luabundle into objects/Global.lua (that breaks Save & Play). Kept the previous file.";
+            log(`objectSync: ${msg}`);
+            void window.showWarningMessage(msg);
+          } else {
+            await writeIfChanged(`${fileName}.lua`, unbundled, "script");
+          }
+        } catch (e) {
+          const msg = `Could not unbundle Global for objects/Global.lua (${e}). Kept the previous file instead of writing a raw bundle.`;
+          log(`objectSync: ${msg}`);
+          void window.showWarningMessage(msg);
+        }
       }
     }
     if (ui !== undefined) {

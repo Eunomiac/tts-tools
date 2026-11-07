@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.1] - 2026-11-07
+
+### Fixed
+
+- **Save & Play / Get Objects no longer poison `objects/Global.lua`.** Syncing from TTS could write the full live luabundle (~megabytes) into the editor's Global entry file. The next Save & Play then tried to re-bundle that payload, froze the extension host, and dropped the gateway with a red port error. Sync now always extracts the root module for `objects/Global.lua`, refuses to write a still-bundled payload there, and Save & Play auto-heals a poisoned file before bundling. Keep `ttsEditor.sync.preserveGlobalStubs` on when Global is a hand-written `require(...)` stub.
+
 ## [3.1.0] - 2026-10-09
 
 **Highlight: Go To Error finally works.** The button on TTS error pop-ups has rarely worked, in the original extension too; it now opens the right file at the right line.

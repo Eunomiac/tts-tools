@@ -6,7 +6,7 @@
   },
   "publisher": "eunomiac",
   "description": "Community fork of Sebastian Stern’s TTS Editor — External Editor API for Tabletop Simulator (scripts, XmlUI bundling, objects). Not affiliated with Berserk Games.",
-  "version": "3.1.0",
+  "version": "3.1.1",
   "engines": {
     "vscode": "^1.96.0"
   },
@@ -202,7 +202,7 @@
             "order": 3
           },
           "ttsEditor.sync.preserveGlobalStubs": {
-            "markdownDescription": "Keep a hand-written `objects/Global.lua` that only contains `require(...)` lines, or an `objects/Global.xml` that only contains `<Include src=...>` tags, instead of replacing it with the copy from TTS on load. Save and Play always rebundles these stubs from their include files, even with **Save and Play (Bundled)**.",
+            "markdownDescription": "Keep a hand-written `objects/Global.lua` that only contains `require(...)` lines, or an `objects/Global.xml` that only contains `<Include src=...>` tags, instead of replacing it with the unbundled root from TTS on load. Save and Play always rebundles these stubs from their include files, even with **Save and Play (Bundled)**. Recommended for projects whose Global entry is only a `require(...)` stub. Independently of this setting, the extension never writes a full luabundle into `objects/Global.lua`.",
             "type": "boolean",
             "default": false,
             "order": 4
