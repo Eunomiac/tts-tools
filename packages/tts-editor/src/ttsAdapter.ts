@@ -13,7 +13,7 @@ import {
   findNearestBundle,
   getRootName,
   isBundled,
-  looksLikeLuabundlePayload,
+  isLuabundleSource,
   resolveModule,
   unbundleLua,
   unbundleRootModule,
@@ -782,20 +782,29 @@ return nil
         let lua = "";
         let xml = "";
 
-        // Heal a poisoned objects/Global.lua (full luabundle written by an older sync path).
-        // Re-bundling that file as-is freezes the extension host and drops the gateway.
-        if (object.isGlobal && fromObjectsLua && looksLikeLuabundlePayload(fromObjectsLua)) {
+        // A bundled objects/Global.lua must not be bundled again. Reverse it to its root.
+        // With stub preservation, that root is only usable when it is still a require() stub.
+        // Re-bundling the raw payload freezes the extension host and drops the gateway.
+        if (object.isGlobal && fromObjectsLua && isLuabundleSource(fromObjectsLua)) {
           try {
             const root = unbundleRootModule(fromObjectsLua);
-            fromObjectsLua = root;
-            await writeOutputFile(`${object.fileName}.lua`, root, "script");
+            if (preserveGlobalStubs && !looksLikeLuaRequireStub(root)) {
+              errors.add(
+                "objects/Global.lua is a bundled script, and reversing it does not produce a require() stub. " +
+                  "Restore the stub and try again. Save & Play will not rebundle this payload."
+              );
+              continue;
+            }
+            const healed = root.endsWith("\n") ? root : `${root}\n`;
+            fromObjectsLua = healed;
+            await writeOutputFile(`${object.fileName}.lua`, healed, "script");
             this.plugin.info(
-              "Healed objects/Global.lua: replaced a luabundle payload with the unbundled root module before Save & Play."
+              "Healed objects/Global.lua: replaced a luabundle payload with its root module before Save & Play."
             );
           } catch (healError) {
             errors.add(
               `objects/Global.lua looks like a luabundle and could not be healed (${healError}). ` +
-                `Restore it to require("core.global_script") (or your Global stub) and try again.`
+                "Restore it to require(\"core.global_script\") (or your Global stub) and try again."
             );
             continue;
           }

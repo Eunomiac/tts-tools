@@ -202,7 +202,7 @@
             "order": 3
           },
           "ttsEditor.sync.preserveGlobalStubs": {
-            "markdownDescription": "Keep a hand-written `objects/Global.lua` that only contains `require(...)` lines, or an `objects/Global.xml` that only contains `<Include src=...>` tags, instead of replacing it with the unbundled root from TTS on load. Save and Play always rebundles these stubs from their include files, even with **Save and Play (Bundled)**. Recommended for projects whose Global entry is only a `require(...)` stub. Independently of this setting, the extension never writes a full luabundle into `objects/Global.lua`.",
+            "markdownDescription": "Keep a hand-written `objects/Global.lua` that only contains `require(...)` lines, or an `objects/Global.xml` that only contains `<Include src=...>` tags, instead of replacing it with whatever TTS sends on load. A bundled Global is written back only when reversing it produces that same `require(...)` stub. A generated root, such as a session-start restore block, is not copied over the stub. Save and Play always rebundles these stubs from their include files, even with **Save and Play (Bundled)**. Independently of this setting, the extension never writes a full luabundle into `objects/Global.lua`.",
             "type": "boolean",
             "default": false,
             "order": 4

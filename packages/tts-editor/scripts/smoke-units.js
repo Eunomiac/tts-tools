@@ -9,11 +9,14 @@ const os = require("node:os");
 const path = require("node:path");
 const { luaLongString } = require("../out/tts/luaString");
 const { isExecutedSnippet, parseErrorLocation, reanchorLine } = require("../out/tts/errorLocation");
+const { bundleString } = require("luabundle");
 const {
   bundleLua,
   findNearestBundle,
   getRootName,
+  isLuabundleSource,
   looksLikeLuabundlePayload,
+  resolveGlobalObjectLua,
   resolveModule,
   unbundleRootModule,
 } = require("../out/io/bundle");
@@ -111,6 +114,34 @@ const main = async () => {
     assertEq(looksLikeLuabundlePayload(root), false, "unbundleRootModule not still bundled");
     if (!root.includes("require('lib.thing')") && !root.includes('require("lib.thing")')) {
       throw new Error(`unbundleRootModule root missing require: ${JSON.stringify(root)}`);
+    }
+
+    const headerless = bundleString('require("lib.thing")\n', { metadata: false, paths: includePaths });
+    assertEq(headerless.startsWith("-- Bundled by luabundle"), false, "headerless bundle omits metadata");
+    assertEq(isLuabundleSource(headerless), true, "headerless bundle is still a bundle");
+    const headerlessRoot = unbundleRootModule(headerless);
+    assertEq(headerlessRoot.includes("require("), true, "headerless root recovered");
+    assertEq(isLuabundleSource(headerlessRoot), false, "headerless root is source");
+
+    const embedded =
+      'do\nlocal s = "-- Bundled by luabundle {}\\nlocal __bundle_require"\nend\nrequire("lib.thing")\n';
+    assertEq(looksLikeLuabundlePayload(embedded), false, "bundle text inside a string is not a bundle");
+    const sessionBundle = bundleString(embedded, { metadata: false, paths: includePaths });
+    assertEq(isLuabundleSource(unbundleRootModule(sessionBundle)), false, "session root is source");
+    assertEq(
+      resolveGlobalObjectLua('require("core.global_script")\n', sessionBundle, true).action,
+      "keep",
+      "preserve an existing require stub"
+    );
+    assertEq(
+      resolveGlobalObjectLua(sessionBundle, sessionBundle, true).action,
+      "refuse",
+      "do not replace Global with a generated root"
+    );
+    const healed = resolveGlobalObjectLua(headerless, headerless, true);
+    assertEq(healed.action, "write", "heal a bundle whose root is a require stub");
+    if (healed.action === "write" && !healed.content.includes("require(")) {
+      throw new Error(`heal wrote unexpected content: ${JSON.stringify(healed.content)}`);
     }
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });

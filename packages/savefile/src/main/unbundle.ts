@@ -28,22 +28,38 @@ const unbundler = (value: any, key: string | number | undefined, obj: any) => {
   return undefined;
 };
 
+const SYNTHETIC_BUNDLE_METADATA = '-- Bundled by luabundle {"version":"1.7.0"}\n';
+
+/**
+ * luabundle refuses to unbundle when the metadata comment is missing.
+ * A bundle emitted with `metadata: false` still starts with the runtime; give it the default header.
+ * Do not treat a script that merely contains those words inside a string as a bundle.
+ */
+const bundleSourceForUnbundle = (script: string): string | undefined => {
+  const trimmed = script.trimStart();
+  if (trimmed.startsWith("-- Bundled by luabundle")) {
+    return trimmed.replace(/(-- Bundled by luabundle {[^}]+})\s*\n/, "$1\n");
+  }
+  if (trimmed.startsWith("local __bundle_require")) {
+    return `${SYNTHETIC_BUNDLE_METADATA}${trimmed}`;
+  }
+  return undefined;
+};
+
 const unbundleLuaScript = (object: TTSObject) => {
   if (object.LuaScript) {
     try {
-      let script = object.LuaScript;
-      if (script.includes("-- Bundled by luabundle")) {
-        // quickfixex - luabundle seems to have a problem when the line ending ist not \n,
-        // which can easily happens when people copy/paste a bundled sript to TTS
-        // also it doesn't whitespace at the beginning which can also happens during copy/paste
-        script = script.replace(/^\s*/, "");
-        script = script.replace(/(-- Bundled by luabundle {[^}]+})\s*\n/, "$1\n");
-
-        const unbundled = unbundleString(script, { rootOnly: true });
-        return unbundled.modules[unbundled.metadata.rootModuleName].content;
+      const bundled = bundleSourceForUnbundle(object.LuaScript);
+      if (!bundled) {
+        return object.LuaScript;
       }
 
-      return script;
+      const unbundled = unbundleString(bundled, { rootOnly: true });
+      const root = unbundled.modules[unbundled.metadata.rootModuleName]?.content;
+      if (typeof root !== "string") {
+        throw new Error("bundled script has no root module content");
+      }
+      return root;
     } catch (e) {
       console.error(`Error during extracting script for object ${object.Nickname}-${object.GUID}`, e);
     }

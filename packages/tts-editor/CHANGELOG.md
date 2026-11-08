@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **Headerless Global bundles no longer become the editor script.** luabundle can only reverse a bundle that starts with its metadata comment. Bundles emitted with that comment turned off were treated as source, so sync and Save & Play could leave the full bundled script in `objects/Global.lua`. Reversal now recognizes the bundle runtime when the comment is missing. With **Preserve Global Stubs** on, the editor file is replaced only when the reversed root is still a `require(...)` stub. A generated root, such as a session-start restore block, is not written over the stub. "This is a bundle" is decided from the start of the file, so bundle text embedded inside strings is not mistaken for the bundle itself.
+
 ## [3.1.1] - 2026-11-07
 
 ### Fixed

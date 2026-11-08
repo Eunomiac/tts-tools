@@ -1,7 +1,7 @@
 import { TTSObject as SaveFileObject, unbundleObject } from "@tts-tools/savefile";
 import { FileType, Uri, window, workspace } from "vscode";
 
-import { looksLikeLuabundlePayload, unbundleRootModule, unbundleXml } from "./bundle";
+import { resolveGlobalObjectLua, unbundleRootModule, unbundleXml } from "./bundle";
 import { getOutputFileUri, getOutputPath, hasOutputFile, readOutputFile, writeOutputFile } from "./files";
 import { Plugin } from "../plugin";
 import { IncomingJsonObject, OutgoingJsonObject } from "../tts/externalEditorApi";
@@ -43,16 +43,9 @@ const sanitizeBaseName = (name: string | undefined): string => {
 };
 
 const getUnbundledLua = (script: string): string => {
-  try {
-    return unbundleRootModule(script);
-  } catch (e) {
-    console.error(e);
-    // Never fall back to writing a raw luabundle into objects/ — that poisons Save & Play.
-    if (looksLikeLuabundlePayload(script)) {
-      throw e instanceof Error ? e : new Error(String(e));
-    }
-    return script;
-  }
+  // Throws when the payload is a bundle that cannot be reversed. Callers must not
+  // catch that and write `script` itself into objects/.
+  return unbundleRootModule(script);
 };
 
 const writeIfChanged = async (fileName: string, content: string, type: "script" | "bundle"): Promise<boolean> => {
@@ -137,11 +130,7 @@ export const looksLikeXmlIncludeStub = (content: string): boolean => {
   return /<Include\s+src=/i.test(content) && content.length < 4096;
 };
 
-/** True when objects/Global.lua is a thin require stub. */
-export const looksLikeLuaRequireStub = (content: string): boolean => {
-  const trimmed = content.trim();
-  return /^require\s*\(/m.test(trimmed) && trimmed.length < 512;
-};
+export { looksLikeLuaRequireStub } from "./bundle";
 
 /**
  * Reconcile `.tts` object files from a TTS scriptStates payload without a blind wipe.
@@ -169,37 +158,30 @@ export const reconcileObjectsFromState = async (deps: ObjectSyncDeps, request: O
 
   const writeGlobalFiles = async (script: string | undefined, ui: string | undefined) => {
     const fileName = "Global";
-    const isPreservedStub = async (extension: string, looksLikeStub: (content: string) => boolean) => {
+    const isPreservedXmlStub = async () => {
       if (!preserveGlobalStubs) {
         return false;
       }
-      const existing = await readOutputFile(`${fileName}.${extension}`, "script");
-      return existing !== undefined && looksLikeStub(existing);
+      const existing = await readOutputFile(`${fileName}.xml`, "script");
+      return existing !== undefined && looksLikeXmlIncludeStub(existing);
     };
     // The echo is our own Save & Play: objects/Global.* already holds what was sent, so only refresh the bundle.
     if (script !== undefined) {
       await writeIfChanged(`${fileName}.lua`, script, "bundle");
-      if (mode !== "echo" && !(await isPreservedStub("lua", looksLikeLuaRequireStub))) {
-        try {
-          const unbundled = getUnbundledLua(script);
-          if (looksLikeLuabundlePayload(unbundled)) {
-            const msg =
-              "Refusing to write a luabundle into objects/Global.lua (that breaks Save & Play). Kept the previous file.";
-            log(`objectSync: ${msg}`);
-            void window.showWarningMessage(msg);
-          } else {
-            await writeIfChanged(`${fileName}.lua`, unbundled, "script");
-          }
-        } catch (e) {
-          const msg = `Could not unbundle Global for objects/Global.lua (${e}). Kept the previous file instead of writing a raw bundle.`;
-          log(`objectSync: ${msg}`);
-          void window.showWarningMessage(msg);
+      if (mode !== "echo") {
+        const existing = await readOutputFile(`${fileName}.lua`, "script");
+        const decision = resolveGlobalObjectLua(existing, script, preserveGlobalStubs);
+        if (decision.action === "write") {
+          await writeIfChanged(`${fileName}.lua`, decision.content, "script");
+        } else if (decision.action === "refuse") {
+          log(`objectSync: ${decision.message}`);
+          void window.showWarningMessage(decision.message);
         }
       }
     }
     if (ui !== undefined) {
       await writeIfChanged(`${fileName}.xml`, ui, "bundle");
-      if (mode !== "echo" && !(await isPreservedStub("xml", looksLikeXmlIncludeStub))) {
+      if (mode !== "echo" && !(await isPreservedXmlStub())) {
         await writeIfChanged(`${fileName}.xml`, unbundleXml(ui).root, "script");
       }
     }
