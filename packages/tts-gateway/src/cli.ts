@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { forceClaimEditorPort } from "./forceClaim";
 import { startGateway, defaultPidFilePath } from "./lifecycle";
 
 const main = async (): Promise<void> => {
@@ -7,12 +8,26 @@ const main = async (): Promise<void> => {
     console.log(`tts-gateway — TTS External Editor multi-client gateway
 
 Usage:
-  tts-gateway
+  tts-gateway [--force]
+
+  --force   If port 39998 is held, ask any gateway on 39997 to shut down,
+            then terminate remaining listeners (never Tabletop Simulator).
 
 Listens on 39998 (TTS events) and 39997 (control NDJSON).
 Writes PID to ${defaultPidFilePath()}
 `);
     process.exit(0);
+  }
+
+  if (args.includes("--force")) {
+    const result = await forceClaimEditorPort({
+      log: (message) => console.log(`[tts-gateway] ${message}`),
+    });
+    if (result.remaining.length > 0) {
+      const heldBy = result.remaining.map((l) => `${l.name} (pid ${l.pid})`).join(", ");
+      console.error(`[tts-gateway] --force could not free editor port; still held by ${heldBy}`);
+      process.exit(1);
+    }
   }
 
   const gateway = await startGateway();

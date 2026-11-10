@@ -12,6 +12,9 @@
   "repository": "https://github.com/Eunomiac/tts-tools",
   "bugs": "https://github.com/Eunomiac/tts-tools/issues",
   "main": "dist/index.js",
+  "bin": {
+    "tts-bundle-into-save": "dist/cliBundleIntoSave.js"
+  },
   "scripts": {
     "build": "rimraf dist && tsc -p tsconfig.build.json",
     "test": "vitest run",

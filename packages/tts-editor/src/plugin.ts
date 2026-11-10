@@ -100,10 +100,18 @@ export class Plugin {
   setPortStatus = (state: PortHoldState, detail?: string) => {
     switch (state) {
       case "gateway":
-        this.portStatus.text = "$(plug) TTS Port: gateway";
+        this.portStatus.text = "$(plug) TTS Port: gateway (owned)";
         this.portStatus.tooltip = detail
-          ? `${detail}\nClick to Release (stops gateway helper).`
-          : "Gateway helper holding 39998. Click to Release for another local tool.";
+          ? `${detail}\nClick to Release (stops the gateway this window started).`
+          : "This window started the gateway helper on 39998. Click to Release and stop it.";
+        this.portStatus.backgroundColor = undefined;
+        this.portStatus.command = "ttsEditor.releaseEditorPort";
+        break;
+      case "gatewayExternal":
+        this.portStatus.text = "$(plug) TTS Port: gateway (external)";
+        this.portStatus.tooltip = detail
+          ? `${detail}\nClick to Release (disconnects only; leaves the external gateway running).`
+          : "Using an external gateway on 39998. Click to Release disconnects this window only.";
         this.portStatus.backgroundColor = undefined;
         this.portStatus.command = "ttsEditor.releaseEditorPort";
         break;

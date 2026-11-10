@@ -7,8 +7,14 @@ Tabletop Simulator talks to external editors over two local ports:
 
 == The gateway helper
 
-By default (xref:settings.adoc#connection[`ttsEditor.connection.mode`] `gateway`), the extension starts a small helper process that listens on port 39998 and lets local programs connect to it on port *39997*.
+By default (xref:settings.adoc#connection[`ttsEditor.connection.mode`] `gateway`), the extension uses a small helper process that listens on port 39998 and lets local programs connect to it on port *39997*.
 The extension, the xref:mcp.adoc[MCP server] and other local tools then all receive TTS messages at the same time.
+
+* If a gateway is already running, the extension **attaches** to it and does not take ownership.
+* If none is running, the extension **starts** one **detached**, so it can keep running after the IDE closes.
+* xref:settings.adoc#connection[`ttsEditor.connection.gatewayStopOnExit`] (off by default) stops an *owned* helper when the extension deactivates.
+
+You can also start the helper yourself (`node …/tts-gateway-helper/cli.js` or the `@tts-tools/tts-gateway` CLI) before opening the IDE.
 
 The helper runs on Node.js from your PATH if there is one, otherwise on your editor's built-in runtime, so you do not need to install anything.
 If it still cannot start, the extension listens on port 39998 itself and shows a warning once. Everything in the editor keeps working; only sharing with other tools is lost.
@@ -23,8 +29,11 @@ The *TTS Port* item on the right of the status bar shows the connection:
 |===
 | Text | Meaning (click action)
 
-| TTS Port: gateway
-| Connected through the gateway helper. Click to *Release*.
+| TTS Port: gateway (owned)
+| Connected through a gateway this window started. Click to *Release* (stops that helper).
+
+| TTS Port: gateway (external)
+| Connected through a gateway started elsewhere. Click to *Release* (disconnects only; leaves the gateway running).
 
 | TTS Port: 39998
 | Listening on port 39998 directly. Click to *Release*.
@@ -36,9 +45,9 @@ The *TTS Port* item on the right of the status bar shows the connection:
 | The connection failed or was taken over. Hover for the reason; click to *Claim* again.
 |===
 
-*Release TTS Editor Port* disconnects and stops the helper if this window started it, so another program can use port 39998.
+*Release TTS Editor Port* disconnects this window. It stops the helper only if this window started it.
 *Claim TTS Editor Port* connects again.
-Release only ever stops a helper this extension started; it never stops other programs.
+*Force Claim TTS Editor Port* frees port 39998 when another local tool is stuck on it (graceful gateway shutdown, then terminate remaining listeners — never Tabletop Simulator), then starts a new owned gateway.
 
 == Several editor windows
 
@@ -46,15 +55,16 @@ TTS messages go to one editor window at a time.
 When a second window connects (for example because you opened another folder with Lua files), it takes over, and the first window's status bar shows *TTS Port: error* with "another client ... took over this connection".
 Click the status bar item in the window you want to use to claim the connection back.
 
-If the window that started the helper is closed, the helper stops with it and the other window shows *TTS Port: error*. Click it to claim the connection again; that window then starts its own helper.
+Closing the IDE leaves a detached owned gateway running unless *gatewayStopOnExit* is on. Another window can attach to that same gateway.
 
 == When another program holds port 39998
 
-If another program already listens on port 39998, the helper does not start. On Windows, the *TTS Editor* output names the program and its process ID.
+If another program already listens on port 39998 and no gateway control port is up, the helper does not start. On Windows, the *TTS Editor* output names the program and its process ID.
 Common causes:
 
 * The original *Tabletop Simulator Editor* extension, or another TTS extension, is enabled in this or another editor window.
 * Another editor (such as Atom with the TTS plugin) is open.
+* An AI agent MCP process bound the port directly.
 
-Disable or close that program, then click the status bar item to claim the port.
-TTS Tools never stops other programs to free the port.
+Use *Force Claim TTS Editor Port*, or start `tts-gateway --force` outside the IDE, then Claim again.
+Default start never stops other programs; only `--force` / Force Claim does.

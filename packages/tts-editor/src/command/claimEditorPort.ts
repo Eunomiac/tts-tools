@@ -7,3 +7,7 @@ export const claimEditorPort = (adapter: TTSAdapter) => () => {
 export const releaseEditorPort = (adapter: TTSAdapter) => () => {
   void adapter.releaseEditorPort();
 };
+
+export const forceClaimEditorPort = (adapter: TTSAdapter) => () => {
+  void adapter.forceClaimEditorPort();
+};

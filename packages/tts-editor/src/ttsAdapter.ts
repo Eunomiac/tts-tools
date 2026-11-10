@@ -1,11 +1,12 @@
 import { connectGateway, type GatewaySession } from "@tts-tools/gateway-client";
 import { TTSObject as SaveFileObject, bundleObject, unbundleObject } from "@tts-tools/savefile";
+import { forceClaimEditorPort } from "@tts-tools/tts-gateway";
 import { Position, Range, Uri, window, workspace } from "vscode";
 
 import { command } from "./command";
 import configuration from "./configuration";
-import { ensureGatewayHelper } from "./gateway/ensureHelper";
-import { stopGatewayHelper } from "./gateway/stopHelper";
+import { didStartOwnedHelper, ensureGatewayHelper } from "./gateway/ensureHelper";
+import { stopOwnedGatewayHelper } from "./gateway/stopHelper";
 import { selectObject } from "./interaction/selectObject";
 import {
   bundleLua,
@@ -59,8 +60,10 @@ export class TTSAdapter {
   private plugin: Plugin;
   private lastError: Maybe<ErrorMessage> = undefined;
   private importMutex = new ImportMutex();
-  /** True when this session went through the gateway helper, so releasing should stop that helper. */
+  /** True when the current session uses the gateway (owned or external). */
   private connectedViaHelper = false;
+  /** True when this window started the gateway helper currently in use. */
+  private ownsGatewayHelper = false;
   private hasWarnedAboutHelperFallback = false;
   /** Set before Save & Play so the following loadingANewGame uses the fast echo path. */
   private expectSaveAndPlayEcho = false;
@@ -88,11 +91,16 @@ export class TTSAdapter {
     }
   };
 
-  /** Disconnect so another local tool can listen on the TTS editor port. */
+  /**
+   * Disconnect this window. Stops the gateway helper only when this window started it.
+   * An external gateway is left running.
+   */
   public releaseEditorPort = async (): Promise<void> => {
     try {
-      await this.disconnectSession();
-      const detail = "Released the TTS editor port. Another local tool can use it now.";
+      const stoppedOwned = await this.disconnectSession({ stopOwnedHelper: true });
+      const detail = stoppedOwned
+        ? "Released the TTS editor port and stopped the gateway this window started."
+        : "Disconnected from TTS. An external gateway (if any) was left running.";
       this.plugin.setPortStatus("released", detail);
       this.plugin.info(detail);
       window.showInformationMessage(detail);
@@ -104,9 +112,33 @@ export class TTSAdapter {
     }
   };
 
+  /** Reclaim port 39998 even if another local tool holds it, then reconnect through a new gateway. */
+  public forceClaimEditorPort = async (): Promise<void> => {
+    try {
+      await this.disconnectSession({ stopOwnedHelper: true });
+      await this.plugin.progress("Force-claiming TTS editor port", async () => {
+        const result = await forceClaimEditorPort({ log: this.plugin.info });
+        if (result.remaining.length > 0) {
+          const heldBy = result.remaining.map((l) => `${l.name} (pid ${l.pid})`).join(", ");
+          throw new Error(`Could not free editor port 39998; still held by ${heldBy}`);
+        }
+      });
+      const detail = await this.plugin.progress("Connecting to Tabletop Simulator", async () =>
+        this.describeSession(await this.connectSession())
+      );
+      this.plugin.info(detail);
+      window.showInformationMessage(`Force-claimed TTS port. ${detail}`);
+    } catch (e) {
+      const message = `Force claim failed: ${e}`;
+      this.plugin.setPortStatus("error", message);
+      this.plugin.error(message);
+      window.showErrorMessage(message);
+    }
+  };
+
   /** Reconnect after a connection setting changed. */
   public reconnect = async (): Promise<void> => {
-    await this.disconnectSession();
+    await this.disconnectSession({ stopOwnedHelper: configuration.gatewayStopOnExit() });
     await this.claimEditorPort();
   };
 
@@ -115,7 +147,7 @@ export class TTSAdapter {
   /** Called from extension deactivate. */
   public dispose = async (): Promise<void> => {
     try {
-      await this.disconnectSession();
+      await this.disconnectSession({ stopOwnedHelper: configuration.gatewayStopOnExit() });
     } catch (e) {
       this.plugin.error(`dispose: ${e}`);
     }
@@ -142,7 +174,9 @@ export class TTSAdapter {
         : await this.connectDirectly();
     this.bindSession(session);
     this.session = session;
-    this.plugin.setPortStatus(session.mode === "gateway" ? "gateway" : "holding", this.describeSession(session));
+    const portState =
+      session.mode === "gateway" ? (this.ownsGatewayHelper ? "gateway" : "gatewayExternal") : "holding";
+    this.plugin.setPortStatus(portState, this.describeSession(session));
     return session;
   };
 
@@ -152,13 +186,15 @@ export class TTSAdapter {
 
   private connectThroughGatewayHelper = async (): Promise<GatewaySession> => {
     try {
-      await ensureGatewayHelper(this.plugin.fileHandler.extensionPath, undefined, this.plugin.info);
+      const ensure = await ensureGatewayHelper(this.plugin.fileHandler.extensionPath, undefined, this.plugin.info);
+      this.ownsGatewayHelper = ensure.owned || didStartOwnedHelper();
     } catch (error) {
       this.warnAboutHelperFallback(error);
+      this.ownsGatewayHelper = false;
       return this.connectDirectly();
     }
     this.connectedViaHelper = true;
-    // The extension owns the helper's lifecycle, so it must not grab the editor port behind the helper's back.
+    // Never bind 39998 ourselves while a gateway (owned or external) is sharing it.
     return connectGateway({ routeTag: ROUTE_TAG, clientId: CLIENT_ID, failover: false });
   };
 
@@ -182,12 +218,20 @@ export class TTSAdapter {
       });
   };
 
-  private describeSession = (session: GatewaySession): string =>
-    session.mode === "gateway"
-      ? "Connected to TTS through the gateway helper (other local tools can share the connection)."
-      : "Connected to TTS directly on the editor port.";
+  private describeSession = (session: GatewaySession): string => {
+    if (session.mode !== "gateway") {
+      return "Connected to TTS directly on the editor port.";
+    }
+    return this.ownsGatewayHelper
+      ? "Connected to TTS through a gateway this window started (other local tools can share the connection)."
+      : "Connected to TTS through an external gateway (other local tools can share the connection).";
+  };
 
-  private disconnectSession = async (): Promise<void> => {
+  /**
+   * @param stopOwnedHelper When true, shut down a gateway this window started. External gateways are never stopped.
+   * @returns Whether an owned helper was stopped.
+   */
+  private disconnectSession = async (options: { stopOwnedHelper?: boolean } = {}): Promise<boolean> => {
     if (this.session) {
       try {
         await this.session.close();
@@ -196,10 +240,13 @@ export class TTSAdapter {
       }
       this.session = undefined;
     }
-    if (this.connectedViaHelper) {
-      this.connectedViaHelper = false;
-      await stopGatewayHelper(undefined, this.plugin.info);
+    this.connectedViaHelper = false;
+    let stopped = false;
+    if (options.stopOwnedHelper && this.ownsGatewayHelper) {
+      stopped = await stopOwnedGatewayHelper(undefined, this.plugin.info);
     }
+    this.ownsGatewayHelper = false;
+    return stopped;
   };
 
   private requireSession = (): GatewaySession => {

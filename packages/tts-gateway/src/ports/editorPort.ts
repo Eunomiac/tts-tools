@@ -41,20 +41,32 @@ const processNameForPid = async (pid: number): Promise<string> => {
 };
 
 /**
- * Which processes are listening on the TTS editor port (Windows only; empty elsewhere).
- * Used to explain a failed start — the gateway never stops other programs.
+ * Which processes are listening on the TTS editor port.
+ * Windows uses netstat; elsewhere tries `lsof` / `ss` when available (best-effort).
  */
 export const listEditorPortListeners = async (port: number = TTS_EDITOR_PORT): Promise<EditorPortListener[]> => {
-  if (process.platform !== "win32") {
-    return [];
+  if (process.platform === "win32") {
+    try {
+      const { stdout } = await execFileAsync("netstat.exe", ["-ano", "-p", "TCP"], {
+        windowsHide: true,
+        encoding: "utf8",
+      });
+      const pids = parseNetstatListeningPids(stdout, port);
+      return Promise.all(pids.map(async (pid) => ({ pid, name: await processNameForPid(pid) })));
+    } catch {
+      return [];
+    }
   }
+
   try {
-    const { stdout } = await execFileAsync("netstat.exe", ["-ano", "-p", "TCP"], {
-      windowsHide: true,
+    const { stdout } = await execFileAsync("lsof", ["-nP", `-iTCP:${port}`, "-sTCP:LISTEN", "-t"], {
       encoding: "utf8",
     });
-    const pids = parseNetstatListeningPids(stdout, port);
-    return Promise.all(pids.map(async (pid) => ({ pid, name: await processNameForPid(pid) })));
+    const pids = stdout
+      .split(/\r?\n/)
+      .map((line) => Number(line.trim()))
+      .filter((pid) => Number.isInteger(pid) && pid > 0);
+    return pids.map((pid) => ({ pid, name: `pid-${pid}` }));
   } catch {
     return [];
   }

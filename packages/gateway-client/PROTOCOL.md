@@ -57,5 +57,14 @@ Stable wire format for non-JS clients. Prefer `@tts-tools/gateway-client` when y
 
 ## Do not
 
-- Kill other processes (TTS or another tool) to free a port. If 39998 is taken, report who holds it and let the person close it.
+- Kill other processes by default to free a port. If 39998 is taken, report who holds it.
 - Send `executeLua` to 39999 while registered with the gateway and expect the return on your own 39998 socket — use proxied `executeLua` on the control port.
+
+## Force claim (explicit only)
+
+`tts-gateway --force` (and the extension **Force Claim TTS Editor Port** command) may free 39998 when a local tool is stuck:
+
+1. Send control `shutdown` on 39997 if something answers.
+2. Terminate remaining listeners on 39998 (never the current process, never Tabletop Simulator).
+
+Do not use force from ordinary connect/start paths.

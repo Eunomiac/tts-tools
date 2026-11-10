@@ -2,7 +2,7 @@ import * as net from "node:net";
 
 import { GATEWAY_CONTROL_PORT } from "@tts-tools/gateway-client";
 
-import { clearOwnedHelperRef, getOwnedHelper } from "./ensureHelper";
+import { clearOwnedHelperRef, didStartOwnedHelper, getOwnedHelper } from "./ensureHelper";
 
 const SHUTDOWN_WAIT_MS = 5000;
 
@@ -36,22 +36,35 @@ const waitForOwnedHelperExit = async (): Promise<void> => {
 };
 
 /**
- * Ask the gateway helper to shut down over its control port, then make sure a helper this
- * extension started has exited. Never signals a process the extension did not start.
+ * Stop a gateway helper that this extension started. Never signals a process the extension did not start.
  */
-export const stopGatewayHelper = async (
+export const stopOwnedGatewayHelper = async (
   controlPort: number = GATEWAY_CONTROL_PORT,
   log?: (message: string) => void
-): Promise<void> => {
+): Promise<boolean> => {
+  if (!didStartOwnedHelper()) {
+    log?.("Gateway helper is external or already stopped; leaving it running");
+    clearOwnedHelperRef();
+    return false;
+  }
+
   if (await requestShutdown(controlPort)) {
-    log?.("Asked the gateway helper to shut down");
+    log?.("Asked the owned gateway helper to shut down");
     await waitForOwnedHelperExit();
   }
 
   const owned = getOwnedHelper();
   if (owned && owned.exitCode === null) {
-    log?.(`Stopping gateway helper (pid ${owned.pid})`);
-    owned.kill();
+    log?.(`Stopping owned gateway helper (pid ${owned.pid})`);
+    try {
+      owned.kill();
+    } catch {
+      // Detached process may already be gone.
+    }
   }
   clearOwnedHelperRef();
+  return true;
 };
+
+/** @deprecated Prefer stopOwnedGatewayHelper — only stops helpers this extension started. */
+export const stopGatewayHelper = stopOwnedGatewayHelper;

@@ -1,6 +1,7 @@
 import { ExtensionContext, commands, window, workspace } from "vscode";
 
-import { claimEditorPort, releaseEditorPort } from "./command/claimEditorPort";
+import { bundleIntoSave } from "./command/bundleIntoSave";
+import { claimEditorPort, forceClaimEditorPort, releaseEditorPort } from "./command/claimEditorPort";
 import createUi from "./command/createUi";
 import executeScript from "./command/executeScript";
 import getObject from "./command/getObject";
@@ -64,6 +65,8 @@ export function activate(context: ExtensionContext) {
     registerCommand("saveAndPlayBundledFullResync", saveAndPlayBundledFullResync(adapter));
     registerCommand("claimEditorPort", claimEditorPort(adapter));
     registerCommand("releaseEditorPort", releaseEditorPort(adapter));
+    registerCommand("forceClaimEditorPort", forceClaimEditorPort(adapter));
+    registerCommand("bundleIntoSave", bundleIntoSave(plugin));
     registerCommand("executeCode", executeScript(adapter));
     registerCommand("showOutput", showOutput(plugin));
     registerCommand("goToLastError", goToLastError(adapter));
@@ -116,6 +119,8 @@ export function activate(context: ExtensionContext) {
       "saveAndPlayBundledFullResync",
       "claimEditorPort",
       "releaseEditorPort",
+      "forceClaimEditorPort",
+      "bundleIntoSave",
       "executeCode",
       "showOutput",
       "goToLastError",

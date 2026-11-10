@@ -22,11 +22,13 @@ const settingNames = {
   resyncAfterSaveAndPlay: "resyncAfterSaveAndPlay",
   behaveLikeOriginal: "compatibility.behaveLikeOriginal",
   connectionMode: "connection.mode",
+  gatewayStopOnExit: "connection.gatewayStopOnExit",
   syncMode: "sync.mode",
   cleanUpOnLoad: "sync.cleanUpOnLoad",
   preserveGlobalStubs: "sync.preserveGlobalStubs",
   updateObjectSource: "updateObject.source",
   mcpEnabled: "mcp.enabled",
+  bundleIntoSaveTargets: "bundleIntoSave.targets",
 };
 
 /** Settings that change how (or whether) the extension connects to TTS. */
@@ -71,6 +73,20 @@ const resyncAfterSaveAndPlay = (): boolean => getSetting<boolean>(settingNames.r
 const connectionMode = (): ConnectionMode =>
   behaveLikeOriginal() ? "direct" : getSetting<ConnectionMode>(settingNames.connectionMode) ?? "gateway";
 
+/** When true, deactivate stops a gateway helper that this window started. Default leaves it running. */
+const gatewayStopOnExit = (): boolean => getSetting<boolean>(settingNames.gatewayStopOnExit) === true;
+
+export type BundleIntoSaveTarget = {
+  path: string;
+  /** When true, do not overwrite Global (guid -1). Use for session-start saves. */
+  preserveGlobal?: boolean;
+};
+
+const bundleIntoSaveTargets = (): BundleIntoSaveTarget[] => {
+  const raw = getSetting<BundleIntoSaveTarget[]>(settingNames.bundleIntoSaveTargets) ?? [];
+  return raw.filter((entry) => typeof entry?.path === "string" && entry.path.length > 0);
+};
+
 const syncMode = (): SyncMode =>
   behaveLikeOriginal() ? "classic" : getSetting<SyncMode>(settingNames.syncMode) ?? "fast";
 
@@ -91,6 +107,8 @@ export default {
   messagesEnabled,
   resyncAfterSaveAndPlay,
   connectionMode,
+  gatewayStopOnExit,
+  bundleIntoSaveTargets,
   syncMode,
   cleanUpOnLoad,
   preserveGlobalStubs,

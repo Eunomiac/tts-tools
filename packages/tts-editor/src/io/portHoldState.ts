@@ -1,1 +1,1 @@
-export type PortHoldState = "holding" | "gateway" | "released" | "error";
+export type PortHoldState = "holding" | "gateway" | "gatewayExternal" | "released" | "error";

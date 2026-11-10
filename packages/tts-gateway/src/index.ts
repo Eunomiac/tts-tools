@@ -13,3 +13,8 @@ export {
   type RunningGateway,
 } from "./lifecycle";
 export { listEditorPortListeners, type EditorPortListener } from "./ports/editorPort";
+export {
+  forceClaimEditorPort,
+  type ForceClaimOptions,
+  type ForceClaimResult,
+} from "./forceClaim";

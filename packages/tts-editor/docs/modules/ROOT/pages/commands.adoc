@@ -38,6 +38,16 @@ Does **not** read from a save file on disk — only the running game.
 No extra bundling step is performed and the scripts are taken as is.
 This can be useful when working on mods where the source files are not available to proper bundle them.
 
+| Bundle Into Save
+| Bundle stubs from `.tts/objects` (with the same include paths as Save and Play) and write `LuaScript` / `XmlUI` into one or more save JSON files on disk.
+Does **not** need TTS running.
+Configure targets with `ttsEditor.bundleIntoSave.targets` (optional `preserveGlobal` for session-start saves), or pick files when the setting is empty.
+Also available as the `tts-bundle-into-save` CLI from `@tts-tools/savefile`.
+
+| Force Claim TTS Editor Port
+| Free port 39998 when another local tool is stuck on it, then start a new owned gateway.
+See xref:connection.adoc[].
+
 | Execute Code
 | Executes the current editor content as a Lua script in TTS.
 See xref:execute.adoc[] for details.

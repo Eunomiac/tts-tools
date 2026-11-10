@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Hybrid standalone gateway.** The extension prefers an already-running gateway helper; otherwise it starts one detached so it can survive closing the IDE. Status bar shows *gateway (owned)* vs *gateway (external)*. Release stops only an owned helper. Setting `ttsEditor.connection.gatewayStopOnExit` (default off) stops an owned helper on deactivate. Run `tts-gateway` / the bundled helper CLI outside the IDE for the same multi-client port.
+- **Force Claim TTS Editor Port** and `tts-gateway --force`: graceful control shutdown, then terminate remaining 39998 listeners (never Tabletop Simulator).
+- **Bundle Into Save** command and `tts-bundle-into-save` CLI: bundle `.tts/objects` stubs into one or more save JSON files without TTS. Supports nested objects and `preserveGlobal` for session-start saves. Setting: `ttsEditor.bundleIntoSave.targets`.
+
 ### Fixed
 
 - **Headerless Global bundles no longer become the editor script.** luabundle can only reverse a bundle that starts with its metadata comment. Bundles emitted with that comment turned off were treated as source, so sync and Save & Play could leave the full bundled script in `objects/Global.lua`. Reversal now recognizes the bundle runtime when the comment is missing. With **Preserve Global Stubs** on, the editor file is replaced only when the reversed root is still a `require(...)` stub. A generated root, such as a session-start restore block, is not written over the stub. "This is a bundle" is decided from the start of the file, so bundle text embedded inside strings is not mistaken for the bundle itself.

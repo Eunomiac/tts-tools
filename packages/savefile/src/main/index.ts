@@ -1,4 +1,19 @@
 export { bundleObject, bundleSave } from "./bundle";
+export {
+  applyScriptsToSave,
+  applyScriptsToSaveFile,
+  bundleIntoSaveFiles,
+  bundleLuaSource,
+  bundleScriptsFromObjectsDir,
+  bundleXmlSource,
+  guidFromObjectFileName,
+  type ApplyScriptsOptions,
+  type ApplyScriptsStats,
+  type BundleFromObjectsOptions,
+  type BundleIntoSaveFileTarget,
+  type BundleIntoSaveFilesResult,
+  type ScriptPayload,
+} from "./bundleIntoSave";
 export { embedSave, readExtractedObject, readExtractedSave } from "./embed";
 export { Options as ExtractOptions, extractSave, readSave, writeExtractedObject, writeExtractedSave } from "./extract";
 export { SaveFile, TTSObject } from "./model/tts";

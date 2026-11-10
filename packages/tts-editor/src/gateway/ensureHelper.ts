@@ -5,6 +5,8 @@ import * as path from "node:path";
 import { GATEWAY_CONTROL_PORT, probeControlPort } from "@tts-tools/gateway-client";
 
 let ownedHelper: ChildProcess | undefined;
+/** True when this extension process started the currently tracked helper. */
+let startedOwnedHelper = false;
 
 /** The gateway helper is bundled to `dist/tts-gateway-helper/cli.js` by `scripts/bundle.js`. */
 export const resolveGatewayCli = (extensionPath: string): string => {
@@ -57,31 +59,41 @@ export const resolveNodeRuntime = (): NodeRuntime => {
   };
 };
 
+export type EnsureGatewayResult = {
+  alreadyRunning: boolean;
+  /** True when this call started a new helper that this extension owns. */
+  owned: boolean;
+  pid?: number;
+};
+
 /**
- * Ensure the gateway helper is listening on the control port. Spawns it if needed.
+ * Ensure the gateway helper is listening on the control port. Spawns it detached if needed so it
+ * can survive IDE close. Never stops an already-running gateway.
  */
 export const ensureGatewayHelper = async (
   extensionPath: string,
   controlPort: number = GATEWAY_CONTROL_PORT,
-  log?: (message: string) => void
-): Promise<{ alreadyRunning: boolean; pid?: number }> => {
+  log?: (message: string) => void,
+  options: { forceArgs?: string[] } = {}
+): Promise<EnsureGatewayResult> => {
   if (await probeControlPort(controlPort, 400)) {
-    log?.(`Gateway control port ${controlPort} already up`);
-    return { alreadyRunning: true };
+    log?.(`Gateway control port ${controlPort} already up (external or previously started)`);
+    return { alreadyRunning: true, owned: startedOwnedHelper && getOwnedHelper()?.exitCode == null };
   }
 
   const cliJs = resolveGatewayCli(extensionPath);
   const runtime = resolveNodeRuntime();
-  log?.(`Starting the TTS gateway helper with ${runtime.description}`);
+  log?.(`Starting the TTS gateway helper with ${runtime.description} (detached)`);
 
-  const child = spawn(runtime.command, [cliJs], {
+  const child = spawn(runtime.command, [cliJs, ...(options.forceArgs ?? [])], {
     cwd: path.dirname(cliJs),
     env: { ...process.env, ...runtime.env },
     stdio: ["ignore", "pipe", "pipe"],
     windowsHide: true,
-    detached: false,
+    detached: true,
   });
   ownedHelper = child;
+  startedOwnedHelper = true;
 
   let spawnError: Error | undefined;
   child.on("error", (error) => {
@@ -92,28 +104,41 @@ export const ensureGatewayHelper = async (
   child.on("exit", (code, signal) => {
     if (ownedHelper === child) {
       ownedHelper = undefined;
+      startedOwnedHelper = false;
     }
     log?.(`Gateway helper exited code=${code} signal=${signal}`);
   });
 
+  // Detach from the parent event loop so closing the IDE leaves the helper running.
+  child.unref();
+
   const deadline = Date.now() + 15_000;
   while (Date.now() < deadline) {
     if (await probeControlPort(controlPort, 300)) {
-      return { alreadyRunning: false, pid: child.pid };
+      return { alreadyRunning: false, owned: true, pid: child.pid };
     }
     if (spawnError) {
+      startedOwnedHelper = false;
+      ownedHelper = undefined;
       throw new Error(`Could not start the gateway helper: ${spawnError.message}`);
     }
     if (child.exitCode !== null) {
+      startedOwnedHelper = false;
+      ownedHelper = undefined;
       throw new Error(`Gateway helper exited early with code ${child.exitCode}`);
     }
     await sleep(200);
   }
+  startedOwnedHelper = false;
+  ownedHelper = undefined;
   throw new Error(`Gateway helper did not open control port ${controlPort} within 15s`);
 };
 
 export const getOwnedHelper = (): ChildProcess | undefined => ownedHelper;
 
+export const didStartOwnedHelper = (): boolean => startedOwnedHelper && ownedHelper?.exitCode == null;
+
 export const clearOwnedHelperRef = (): void => {
   ownedHelper = undefined;
+  startedOwnedHelper = false;
 };

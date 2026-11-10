@@ -94,6 +94,18 @@
         "icon": "$(debug-disconnect)"
       },
       {
+        "command": "ttsEditor.forceClaimEditorPort",
+        "title": "Force Claim TTS Editor Port",
+        "category": "TTS Editor",
+        "icon": "$(zap)"
+      },
+      {
+        "command": "ttsEditor.bundleIntoSave",
+        "title": "Bundle Into Save",
+        "category": "TTS Editor",
+        "icon": "$(file-zip)"
+      },
+      {
         "command": "ttsEditor.executeCode",
         "title": "Execute Code",
         "category": "TTS Editor",
@@ -234,11 +246,36 @@
               "direct"
             ],
             "enumDescriptions": [
-              "Start a small helper process that holds the TTS port and shares it with other local tools (such as the MCP server below). Falls back to `direct` if the helper cannot start.",
+              "Prefer an already-running gateway helper; otherwise start one that can survive closing the IDE. Falls back to `direct` if the helper cannot start.",
               "The extension listens on the TTS port itself, like the original extension. Other local tools cannot connect at the same time."
             ],
             "default": "gateway",
             "order": 2
+          },
+          "ttsEditor.connection.gatewayStopOnExit": {
+            "markdownDescription": "When this window started the gateway helper, stop that helper when the extension deactivates (IDE close). Off by default so the gateway can keep serving MCP and other tools after the IDE closes. Release always stops an owned helper.",
+            "type": "boolean",
+            "default": false,
+            "order": 3
+          },
+          "ttsEditor.bundleIntoSave.targets": {
+            "markdownDescription": "Save JSON files that **Bundle Into Save** updates. Each entry is a workspace-relative or absolute path. Set `preserveGlobal` for session-start saves whose Global script must not be overwritten.",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["path"],
+              "properties": {
+                "path": {
+                  "type": "string"
+                },
+                "preserveGlobal": {
+                  "type": "boolean",
+                  "default": false
+                }
+              }
+            },
+            "default": [],
+            "order": 4
           },
           "ttsEditor.sync.mode": {
             "markdownDescription": "How object files are refreshed when a game loads in TTS.",
@@ -332,6 +369,14 @@
         },
         {
           "command": "ttsEditor.releaseEditorPort",
+          "when": "view == ttsEditor.objectView"
+        },
+        {
+          "command": "ttsEditor.forceClaimEditorPort",
+          "when": "view == ttsEditor.objectView"
+        },
+        {
+          "command": "ttsEditor.bundleIntoSave",
           "when": "view == ttsEditor.objectView"
         },
         {
@@ -474,6 +519,7 @@
   "dependencies": {
     "@tts-tools/gateway-client": "file:../gateway-client",
     "@tts-tools/savefile": "file:../savefile",
+    "@tts-tools/tts-gateway": "file:../tts-gateway",
     "@tts-tools/xmlbundle": "file:../xmlbundle",
     "luabundle": "^1.7.0"
   },
